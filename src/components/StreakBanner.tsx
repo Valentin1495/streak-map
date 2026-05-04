@@ -1,0 +1,78 @@
+import React from 'react';
+import { View, Text, StyleSheet } from 'react-native';
+
+interface StreakBannerProps {
+  streak: number;
+  hasTodayRecord: boolean;
+}
+
+export function StreakBanner({ streak, hasTodayRecord }: StreakBannerProps) {
+  return (
+    <View style={[styles.container, hasTodayRecord ? styles.active : styles.inactive]}>
+      <View style={styles.left}>
+        <Text style={styles.flame}>{hasTodayRecord ? '🔥' : '⭕'}</Text>
+        <View>
+          <Text style={styles.count}>
+            {streak > 0 ? `${streak}일 연속 기록 중` : '기록을 시작해보세요'}
+          </Text>
+          {!hasTodayRecord && streak > 0 && (
+            <Text style={styles.warning}>오늘 기록하지 않으면 스트릭이 끊겨요</Text>
+          )}
+        </View>
+      </View>
+      {hasTodayRecord && (
+        <View style={styles.badge}>
+          <Text style={styles.badgeText}>오늘 완료</Text>
+        </View>
+      )}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginHorizontal: 16,
+    marginVertical: 8,
+    borderRadius: 12,
+  },
+  active: {
+    backgroundColor: '#EAF2FF',
+  },
+  inactive: {
+    backgroundColor: '#FFF7ED',
+  },
+  left: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  flame: {
+    fontSize: 24,
+  },
+  count: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  warning: {
+    fontSize: 12,
+    color: '#D97706',
+    marginTop: 2,
+  },
+  badge: {
+    backgroundColor: '#0064FF',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 99,
+  },
+  badgeText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+});
