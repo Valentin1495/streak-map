@@ -25,6 +25,13 @@ export interface InsertPhotoParams {
   lng: number | null;
   placeName: string | null;
   memo: string | null;
+  replaceDate?: string;
+  replacementSource?: string;
+}
+
+function toKstDateString(date: Date): string {
+  const kstOffset = 9 * 60 * 60 * 1000;
+  return new Date(date.getTime() + kstOffset).toISOString().slice(0, 10);
 }
 
 export async function loadPhotos(userId: string): Promise<Photo[]> {
@@ -61,9 +68,79 @@ export async function insertPhoto(params: InsertPhotoParams): Promise<Photo> {
   }
 
   // KST 기준 streak_date (UTC+9)
-  const kstOffset = 9 * 60 * 60 * 1000;
-  const kstDate = new Date(now.getTime() + kstOffset);
-  const streakDate = kstDate.toISOString().slice(0, 10);
+  const streakDate = toKstDateString(now);
+  const replaceDate = params.replaceDate ?? streakDate;
+
+  const { data: existingPhotos, error: existingError } = await supabase
+    .from('photos')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('streak_date', replaceDate)
+    .order('taken_at', { ascending: false });
+
+  if (existingError != null) {
+    await supabase.storage.from(BUCKET).remove([storagePath]);
+    throw new Error(`기존 오늘 기록 확인 실패: ${existingError.message}`);
+  }
+
+  const existingPhoto = existingPhotos?.[0] ?? null;
+  if (existingPhoto != null) {
+    const { data, error: updateError } = await supabase
+      .from('photos')
+      .update({
+        storage_path: storagePath,
+        lat,
+        lng,
+        place_name: placeName,
+        memo,
+        taken_at: now.toISOString(),
+        streak_date: streakDate,
+      })
+      .eq('id', existingPhoto.id)
+      .select()
+      .single();
+
+    if (updateError != null) {
+      await supabase.storage.from(BUCKET).remove([storagePath]);
+      throw new Error(`기존 오늘 기록 교체 실패: ${updateError.message}`);
+    }
+
+    const duplicateIds = existingPhotos.slice(1).map((photo) => photo.id);
+    if (duplicateIds.length > 0) {
+      const { error: deleteDuplicateError } = await supabase
+        .from('photos')
+        .delete()
+        .in('id', duplicateIds);
+
+      if (deleteDuplicateError != null) {
+        console.warn('중복 오늘 기록 정리 실패:', deleteDuplicateError.message);
+      }
+    }
+
+    const oldStoragePaths = existingPhotos.map((photo) => photo.storage_path);
+    const { error: deleteStorageError } = await supabase.storage
+      .from(BUCKET)
+      .remove(oldStoragePaths);
+
+    if (deleteStorageError != null) {
+      console.warn('기존 오늘 사진 파일 삭제 실패:', deleteStorageError.message);
+    }
+
+    const { error: replacementLogError } = await supabase
+      .from('daily_photo_replacements')
+      .insert({
+        user_id: userId,
+        replacement_date: replaceDate,
+        replaced_at: now.toISOString(),
+        source: params.replacementSource ?? 'free',
+      });
+
+    if (replacementLogError != null) {
+      console.warn('오늘 한 컷 교체 기록 저장 실패:', replacementLogError.message);
+    }
+
+    return data;
+  }
 
   const { data, error: insertError } = await supabase
     .from('photos')
@@ -81,9 +158,27 @@ export async function insertPhoto(params: InsertPhotoParams): Promise<Photo> {
     .single();
 
   if (insertError != null) {
+    await supabase.storage.from(BUCKET).remove([storagePath]);
     throw new Error(`사진 정보 저장 실패: ${insertError.message}`);
   }
   return data;
+}
+
+export async function getDailyReplacementCount(
+  userId: string,
+  date = toKstDateString(new Date())
+): Promise<number> {
+  const { count, error } = await supabase
+    .from('daily_photo_replacements')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .eq('replacement_date', date);
+
+  if (error != null) {
+    throw new Error(`오늘 한 컷 교체 횟수 확인 실패: ${error.message}`);
+  }
+
+  return count ?? 0;
 }
 
 export async function deletePhoto(photo: Photo): Promise<void> {

@@ -1,5 +1,3 @@
-/* global Image, FileReader */
-
 const MAX_DIMENSION = 1200;
 const WEBP_QUALITY = 0.82;
 

@@ -4,7 +4,16 @@ import pluginReact from 'eslint-plugin-react';
 
 /** @type {import('eslint').Linter.Config[]} */
 export default [
-  { ignores: ['**/node_modules/**', '**/dist/**', '*.{cjs,js}'] },
+  {
+    ignores: [
+      '**/node_modules/**',
+      '**/dist/**',
+      '**/.granite/**',
+      'src/router.gen.ts',
+      'supabase/functions/**',
+      '*.{cjs,js}',
+    ],
+  },
   { files: ['pages/**/*.{ts,jsx,tsx}', 'src/**/*.{ts,jsx,tsx}'] },
   pluginJs.configs.recommended,
   ...tseslint.configs.recommended,

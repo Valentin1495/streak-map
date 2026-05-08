@@ -25,9 +25,10 @@ interface MapMessage {
 interface MapWebViewProps {
   photos: Photo[];
   onPinTap?: (photo: Photo) => void;
+  showPath?: boolean;
 }
 
-export function MapWebView({ photos, onPinTap }: MapWebViewProps) {
+export function MapWebView({ photos, onPinTap, showPath = false }: MapWebViewProps) {
   const webViewRef = useRef<WebView>(null);
 
   const injectPins = () => {
@@ -37,7 +38,7 @@ export function MapWebView({ photos, onPinTap }: MapWebViewProps) {
         id: p.id,
         latitude: p.lat!,
         longitude: p.lng!,
-        imageUrl: getPhotoUrl(p.storage_path),
+        imageUrl: `${getPhotoUrl(p.storage_path)}?v=${encodeURIComponent(p.taken_at)}`,
         placeName: p.place_name ?? '',
         date: p.streak_date,
       }));
@@ -117,13 +118,51 @@ export function MapWebView({ photos, onPinTap }: MapWebViewProps) {
     webViewRef.current?.injectJavaScript(js);
   };
 
+  const injectPath = () => {
+    const pathCoords = photos
+      .filter((p) => p.lat != null && p.lng != null)
+      .sort((a, b) => a.taken_at.localeCompare(b.taken_at))
+      .map((p) => ({ lat: p.lat!, lng: p.lng! }));
+
+    if (pathCoords.length < 2) return;
+
+    const js = `
+      (function() {
+        if (!window.naver || !window.naver.maps || !window.map) return;
+
+        if (window.__streakPath) {
+          window.__streakPath.setMap(null);
+        }
+
+        var coords = ${JSON.stringify(pathCoords)}.map(function(c) {
+          return new window.naver.maps.LatLng(c.lat, c.lng);
+        });
+
+        window.__streakPath = new window.naver.maps.Polyline({
+          path: coords,
+          map: window.map,
+          strokeColor: '#0064FF',
+          strokeOpacity: 0.55,
+          strokeWeight: 3,
+          strokeStyle: 'solid',
+        });
+      })();
+      true;
+    `;
+    webViewRef.current?.injectJavaScript(js);
+  };
+
   useEffect(() => {
     injectPins();
-  }, [photos]);
+    if (showPath) injectPath();
+  }, [photos, showPath]);
 
   const scheduleInjectPins = () => {
     [0, 300, 1000, 2000].forEach((delay) => {
-      setTimeout(injectPins, delay);
+      setTimeout(() => {
+        injectPins();
+        if (showPath) injectPath();
+      }, delay);
     });
   };
 

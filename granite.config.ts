@@ -3,11 +3,11 @@ import { defineConfig } from '@granite-js/react-native/config';
 
 export default defineConfig({
   scheme: 'intoss',
-  appName: 'streak-map',
+  appName: 'dayshot',
   plugins: [
     appsInToss({
       brand: {
-        displayName: 'Streak Map',
+        displayName: '오늘 한 컷',
         primaryColor: '#0064FF',
         icon: '',
       },

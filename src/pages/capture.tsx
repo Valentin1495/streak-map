@@ -27,6 +27,7 @@ import {
 import { insertPhoto } from '../lib/supabase';
 import { reverseGeocode } from '../lib/geocode';
 import { compressImage } from '../lib/compress';
+import { consumePendingReplacementSource, setPendingCapture } from '../lib/captureResult';
 
 export const Route = createRoute('/capture', {
   component: CapturePage,
@@ -364,8 +365,13 @@ function CapturePage() {
         lng,
         placeName: placeName.trim() || null,
         memo: memo.trim() || null,
+        replacementSource: consumePendingReplacementSource() ?? undefined,
       });
       setStep('done');
+      setPendingCapture({
+        photoUri: imageUri,
+        placeName: placeName.trim() || null,
+      });
       navigation.navigate('/');
     } catch (e) {
       console.error(e);
@@ -393,7 +399,7 @@ function CapturePage() {
             <TouchableOpacity onPress={() => navigation.navigate('/')} disabled={isWorking}>
               <Text style={styles.backText}>← 취소</Text>
             </TouchableOpacity>
-            <Text style={styles.headerTitle}>오늘 기록</Text>
+            <Text style={styles.headerTitle}>오늘 한 컷</Text>
             <View style={{ width: 52 }} />
           </View>
 
@@ -496,7 +502,7 @@ function CapturePage() {
               {step === 'uploading' ? (
                 <ActivityIndicator color="white" />
               ) : (
-                <Text style={styles.saveButtonText}>저장하고 지도에 추가</Text>
+                <Text style={styles.saveButtonText}>오늘 한 컷 저장하기</Text>
               )}
             </TouchableOpacity>
 

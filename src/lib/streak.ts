@@ -11,10 +11,13 @@ function subtractDays(dateStr: string, days: number): string {
   return date.toISOString().slice(0, 10);
 }
 
-export function calculateStreak(photos: Photo[]): number {
-  if (photos.length === 0) return 0;
+export function calculateStreak(photos: Photo[], protectedDates: string[] = []): number {
+  if (photos.length === 0 && protectedDates.length === 0) return 0;
 
-  const recordedDates = new Set(photos.map((p) => p.streak_date));
+  const recordedDates = new Set([
+    ...photos.map((p) => p.streak_date),
+    ...protectedDates,
+  ]);
   const today = toKstDateString(new Date());
 
   // 오늘 또는 어제 기록이 없으면 스트릭 0
