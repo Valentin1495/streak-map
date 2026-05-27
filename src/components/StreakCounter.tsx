@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { Animated, StyleSheet, Text, View } from 'react-native';
+import { Badge, colors } from '@toss/tds-react-native';
 
 interface StreakCounterProps {
   streak: number;
@@ -61,9 +62,9 @@ export function StreakCounter({ streak, hasTodayRecord, ticketCount }: StreakCou
       </Text>
 
       {ticketCount != null && ticketCount > 0 && (
-        <View style={styles.ticketBadge}>
-          <Text style={styles.ticketText}>🛡 기록 보호권 {ticketCount}개</Text>
-        </View>
+        <Badge size="medium" type="blue" badgeStyle="weak">
+          {`🛡 기록 보호권 ${ticketCount}개`}
+        </Badge>
       )}
     </View>
   );
@@ -84,14 +85,14 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   circleActive: {
-    backgroundColor: '#FFF7ED',
+    backgroundColor: colors.orange50,
     borderWidth: 3,
-    borderColor: '#FB923C',
+    borderColor: colors.orange400,
   },
   circleInactive: {
-    backgroundColor: '#F9FAFB',
+    backgroundColor: colors.grey50,
     borderWidth: 2,
-    borderColor: '#E5E7EB',
+    borderColor: colors.grey200,
     borderStyle: 'dashed',
   },
   flame: {
@@ -103,20 +104,20 @@ const styles = StyleSheet.create({
     lineHeight: 40,
   },
   countActive: {
-    color: '#EA580C',
+    color: colors.orange700,
   },
   countInactive: {
-    color: '#9CA3AF',
+    color: colors.grey500,
   },
   unit: {
     fontSize: 13,
     fontWeight: '700',
   },
   unitActive: {
-    color: '#EA580C',
+    color: colors.orange700,
   },
   unitInactive: {
-    color: '#9CA3AF',
+    color: colors.grey500,
   },
   status: {
     fontSize: 14,
@@ -124,22 +125,9 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   statusDone: {
-    color: '#EA580C',
+    color: colors.orange700,
   },
   statusPending: {
-    color: '#6B7280',
-  },
-  ticketBadge: {
-    backgroundColor: '#EFF6FF',
-    borderRadius: 20,
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderWidth: 1,
-    borderColor: '#BFDBFE',
-  },
-  ticketText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#0064FF',
+    color: colors.grey600,
   },
 });

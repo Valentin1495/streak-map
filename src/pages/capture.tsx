@@ -7,13 +7,13 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   TouchableWithoutFeedback,
   useWindowDimensions,
   View,
 } from 'react-native';
 import { createRoute } from '@granite-js/react-native';
+import { Button, TextArea, TextButton, TextField, colors } from '@toss/tds-react-native';
 import {
   getAnonymousKey,
   getCurrentLocation,
@@ -27,7 +27,7 @@ import {
 import { insertPhoto } from '../lib/supabase';
 import { reverseGeocode } from '../lib/geocode';
 import { compressImage } from '../lib/compress';
-import { consumePendingReplacementSource, setPendingCapture } from '../lib/captureResult';
+import { setPendingCapture } from '../lib/captureResult';
 
 export const Route = createRoute('/capture', {
   component: CapturePage,
@@ -365,7 +365,6 @@ function CapturePage() {
         lng,
         placeName: placeName.trim() || null,
         memo: memo.trim() || null,
-        replacementSource: consumePendingReplacementSource() ?? undefined,
       });
       setStep('done');
       setPendingCapture({
@@ -396,9 +395,15 @@ function CapturePage() {
       <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
         <View style={styles.container}>
           <View style={styles.header}>
-            <TouchableOpacity onPress={() => navigation.navigate('/')} disabled={isWorking}>
-              <Text style={styles.backText}>← 취소</Text>
-            </TouchableOpacity>
+            <TextButton
+              typography="t5"
+              variant="clear"
+              fontWeight="semibold"
+              onPress={() => navigation.navigate('/')}
+              disabled={isWorking}
+            >
+              ← 취소
+            </TextButton>
             <Text style={styles.headerTitle}>오늘 한 컷</Text>
             <View style={{ width: 52 }} />
           </View>
@@ -434,7 +439,7 @@ function CapturePage() {
 
             {isWorking && (
               <View style={styles.statusRow}>
-                <ActivityIndicator size="small" color="#0064FF" />
+                <ActivityIndicator size="small" color={colors.blue500} />
                 <Text style={styles.statusText}>{stepLabel[step]}</Text>
               </View>
             )}
@@ -442,13 +447,17 @@ function CapturePage() {
             {error != null && <Text style={styles.errorText}>{error}</Text>}
 
             {imageUri != null && (lat == null || lng == null) && (
-              <TouchableOpacity
-                style={styles.retryLocationButton}
+              <Button
+                type="primary"
+                style="weak"
+                size="medium"
+                display="full"
                 onPress={locateAndFillPlace}
                 disabled={isWorking}
+                containerStyle={styles.retryLocationButtonContainer}
               >
-              <Text style={styles.retryLocationText}>현재 위치 다시 시도</Text>
-              </TouchableOpacity>
+                현재 위치 다시 시도
+              </Button>
             )}
 
             <View style={styles.fieldGroup}>
@@ -459,13 +468,12 @@ function CapturePage() {
                   위치가 없으면 지도 핀 없이 기록만 저장돼요.
                 </Text>
               )}
-              <TextInput
-                style={styles.input}
+              <TextField
+                variant="box"
                 value={placeName}
                 onChangeText={setPlaceName}
                 placeholder="장소명 (자동 입력 또는 직접 입력)"
-                placeholderTextColor="#9CA3AF"
-                editable={!isWorking}
+                disabled={isWorking}
                 returnKeyType="done"
                 onFocus={() => setIsTextInputFocused(true)}
                 onBlur={() => setIsTextInputFocused(false)}
@@ -475,36 +483,31 @@ function CapturePage() {
 
             <View style={styles.fieldGroup}>
               <Text style={styles.fieldLabel}>메모 (선택)</Text>
-              <TextInput
-                style={[styles.input, styles.inputMultiline]}
+              <TextArea
                 value={memo}
                 onChangeText={setMemo}
                 placeholder="오늘 이 장소에 대한 한 줄 기록"
-                placeholderTextColor="#9CA3AF"
-                multiline
-                numberOfLines={3}
-                editable={!isWorking}
+                disabled={isWorking}
                 returnKeyType="default"
-                blurOnSubmit={false}
                 onFocus={() => setIsTextInputFocused(true)}
                 onBlur={() => setIsTextInputFocused(false)}
+                textAreaStyle={styles.textArea}
               />
             </View>
 
-            <TouchableOpacity
-              style={[
-                styles.saveButton,
-                (isWorking || imageUri == null) && styles.saveButtonDisabled,
-              ]}
+            <Button
+              type="primary"
+              style="fill"
+              size="large"
+              display="full"
               onPress={save}
               disabled={isWorking || imageUri == null}
+              loading={step === 'uploading'}
+              viewStyle={styles.saveButton}
+              containerStyle={styles.saveButtonContainer}
             >
-              {step === 'uploading' ? (
-                <ActivityIndicator color="white" />
-              ) : (
-                <Text style={styles.saveButtonText}>오늘 한 컷 저장하기</Text>
-              )}
-            </TouchableOpacity>
+              오늘 한 컷 저장하기
+            </Button>
 
             <View style={styles.keyboardSpacer} />
           </ScrollView>
@@ -517,7 +520,7 @@ function CapturePage() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.grey50,
   },
   header: {
     flexDirection: 'row',
@@ -526,17 +529,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 0.5,
-    borderBottomColor: '#E5E7EB',
-  },
-  backText: {
-    color: '#0064FF',
-    fontSize: 15,
-    fontWeight: '600',
+    borderBottomColor: colors.grey200,
   },
   headerTitle: {
     fontSize: 17,
     fontWeight: '800',
-    color: '#111827',
+    color: colors.grey900,
   },
   content: {
     padding: 16,
@@ -548,7 +546,7 @@ const styles = StyleSheet.create({
   },
   photoBox: {
     width: '100%',
-    backgroundColor: '#E5E7EB',
+    backgroundColor: colors.grey200,
     borderRadius: 14,
     overflow: 'hidden',
   },
@@ -572,7 +570,7 @@ const styles = StyleSheet.create({
     fontSize: 40,
   },
   photoHint: {
-    color: '#6B7280',
+    color: colors.grey600,
     fontSize: 15,
     fontWeight: '600',
   },
@@ -582,27 +580,14 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   statusText: {
-    color: '#0064FF',
+    color: colors.blue500,
     fontSize: 13,
     fontWeight: '600',
   },
   errorText: {
-    color: '#DC2626',
+    color: colors.red600,
     fontSize: 13,
     fontWeight: '500',
-  },
-  retryLocationButton: {
-    alignItems: 'center',
-    backgroundColor: '#EEF6FF',
-    borderColor: '#BFDBFE',
-    borderRadius: 10,
-    borderWidth: 1,
-    paddingVertical: 11,
-  },
-  retryLocationText: {
-    color: '#0064FF',
-    fontSize: 14,
-    fontWeight: '700',
   },
   fieldGroup: {
     gap: 6,
@@ -610,40 +595,23 @@ const styles = StyleSheet.create({
   fieldLabel: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#374151',
+    color: colors.grey700,
   },
   fieldHint: {
-    color: '#6B7280',
+    color: colors.grey600,
     fontSize: 12,
     lineHeight: 17,
   },
-  input: {
-    backgroundColor: 'white',
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 15,
-    color: '#111827',
-  },
-  inputMultiline: {
+  textArea: {
     height: 90,
-    textAlignVertical: 'top',
   },
   saveButton: {
-    backgroundColor: '#0064FF',
-    borderRadius: 12,
-    paddingVertical: 16,
-    alignItems: 'center',
     marginTop: 4,
   },
-  saveButtonDisabled: {
-    backgroundColor: '#93C5FD',
+  retryLocationButtonContainer: {
+    borderRadius: 10,
   },
-  saveButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '800',
+  saveButtonContainer: {
+    borderRadius: 12,
   },
 });

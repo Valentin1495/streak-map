@@ -1,5 +1,6 @@
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
+import { Badge, Button, colors } from '@toss/tds-react-native';
 
 export type RewardAdStatus =
   | 'unsupported'
@@ -50,9 +51,9 @@ export function SettingsView({
                 <Text style={styles.rowSub}>내 기록의 흐름을 하루 지켜줘요</Text>
               </View>
             </View>
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>{ticketCount}개</Text>
-            </View>
+            <Badge size="small" type="blue" badgeStyle="weak">
+              {`${ticketCount}개`}
+            </Badge>
           </View>
           <View style={styles.divider} />
           <View style={styles.ticketInfo}>
@@ -61,21 +62,19 @@ export function SettingsView({
                 ? '하루 누락 시 자동으로 사용돼요. 7일 달성마다 1개 지급.'
                 : '7일 연속 기록을 달성하면 보호권이 지급돼요.'}
             </Text>
-            <TouchableOpacity
-              style={[styles.rewardAdButton, rewardAdDisabled && styles.rewardAdButtonDisabled]}
+            <Button
+              type="primary"
+              style="fill"
+              size="medium"
+              display="full"
               onPress={onRewardAdPress}
               disabled={rewardAdDisabled}
-              activeOpacity={0.8}
+              loading={rewardAdStatus === 'showing'}
+              viewStyle={styles.rewardAdButton}
+              containerStyle={styles.buttonContainer}
             >
-              <Text
-                style={[
-                  styles.rewardAdButtonText,
-                  rewardAdDisabled && styles.rewardAdButtonTextDisabled,
-                ]}
-              >
-                {REWARD_AD_LABELS[rewardAdStatus]}
-              </Text>
-            </TouchableOpacity>
+              {REWARD_AD_LABELS[rewardAdStatus]}
+            </Button>
           </View>
         </View>
       </View>
@@ -101,13 +100,17 @@ export function SettingsView({
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>DEV</Text>
           <View style={styles.card}>
-            <TouchableOpacity
-              style={styles.debugButton}
+            <Button
+              type="primary"
+              style="weak"
+              size="medium"
+              display="full"
               onPress={onDebugRecapPress}
-              activeOpacity={0.8}
+              viewStyle={styles.debugButton}
+              containerStyle={styles.buttonContainer}
             >
-              <Text style={styles.debugButtonText}>리캡 카드 테스트</Text>
-            </TouchableOpacity>
+              리캡 카드 테스트
+            </Button>
           </View>
         </View>
       )}
@@ -120,13 +123,13 @@ export function SettingsView({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.grey50,
     paddingTop: 8,
   },
   title: {
     fontSize: 22,
     fontWeight: '800',
-    color: '#111827',
+    color: colors.grey900,
     paddingHorizontal: 16,
     paddingBottom: 16,
   },
@@ -136,18 +139,18 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#6B7280',
+    color: colors.grey600,
     paddingHorizontal: 20,
     marginBottom: 8,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   card: {
-    backgroundColor: 'white',
+    backgroundColor: colors.white,
     marginHorizontal: 16,
     borderRadius: 16,
     overflow: 'hidden',
-    shadowColor: '#000',
+    shadowColor: colors.black,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.06,
     shadowRadius: 4,
@@ -172,27 +175,16 @@ const styles = StyleSheet.create({
   rowTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#111827',
+    color: colors.grey900,
   },
   rowSub: {
     fontSize: 13,
-    color: '#6B7280',
+    color: colors.grey600,
     marginTop: 2,
-  },
-  badge: {
-    backgroundColor: '#EFF6FF',
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-  },
-  badgeText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#0064FF',
   },
   divider: {
     height: 1,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.grey100,
     marginHorizontal: 16,
   },
   ticketInfo: {
@@ -202,40 +194,22 @@ const styles = StyleSheet.create({
   },
   ticketInfoText: {
     fontSize: 13,
-    color: '#6B7280',
+    color: colors.grey600,
     lineHeight: 18,
   },
   rewardAdButton: {
-    alignItems: 'center',
-    backgroundColor: '#0064FF',
-    borderRadius: 10,
-    paddingVertical: 12,
-  },
-  rewardAdButtonDisabled: {
-    backgroundColor: '#E5E7EB',
-  },
-  rewardAdButtonText: {
-    color: 'white',
-    fontSize: 14,
-    fontWeight: '800',
-  },
-  rewardAdButtonTextDisabled: {
-    color: '#9CA3AF',
+    alignSelf: 'stretch',
   },
   debugButton: {
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    margin: 12,
   },
-  debugButtonText: {
-    color: '#0064FF',
-    fontSize: 14,
-    fontWeight: '800',
+  buttonContainer: {
+    borderRadius: 10,
   },
   version: {
     textAlign: 'center',
     fontSize: 12,
-    color: '#D1D5DB',
+    color: colors.grey300,
     marginTop: 8,
   },
 });

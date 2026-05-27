@@ -5,9 +5,9 @@ import {
   Modal,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from 'react-native';
+import { Badge, Button, colors } from '@toss/tds-react-native';
 
 const MILESTONES = [3, 7, 14, 30, 100];
 
@@ -88,9 +88,14 @@ export function StreakAchievedModal({
           </View>
 
           {isMilestone && (
-            <View style={styles.milestoneBadge}>
-              <Text style={styles.milestoneText}>🎉 {streak}일 달성! 대단해요!</Text>
-            </View>
+            <Badge
+              size="large"
+              type="yellow"
+              badgeStyle="weak"
+              style={styles.milestoneBadge}
+            >
+              {`🎉 ${streak}일 달성! 대단해요!`}
+            </Badge>
           )}
 
           {photoUri != null && (
@@ -101,14 +106,17 @@ export function StreakAchievedModal({
             <Text style={styles.placeName}>📍 {placeName}</Text>
           )}
 
-          <TouchableOpacity
-            style={styles.homeButton}
+          <Button
+            type="primary"
+            style="fill"
+            size="large"
+            display="full"
             onPress={streak === 7 && onShowRecap != null ? onShowRecap : onClose}
+            viewStyle={styles.homeButton}
+            containerStyle={styles.homeButtonContainer}
           >
-            <Text style={styles.homeButtonText}>
-              {streak === 7 && onShowRecap != null ? '주간 리캡 보기 →' : '홈으로'}
-            </Text>
-          </TouchableOpacity>
+            {streak === 7 && onShowRecap != null ? '주간 리캡 보기 →' : '홈으로'}
+          </Button>
 
           {!isMilestone && (
             <Text style={styles.autoCloseHint}>잠시 후 자동으로 닫혀요</Text>
@@ -142,14 +150,14 @@ const styles = StyleSheet.create({
     padding: 32,
   },
   card: {
-    backgroundColor: 'white',
+    backgroundColor: colors.white,
     borderRadius: 24,
     padding: 28,
     alignItems: 'center',
     gap: 12,
     width: '100%',
     maxWidth: 340,
-    shadowColor: '#000',
+    shadowColor: colors.black,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.18,
     shadowRadius: 24,
@@ -166,53 +174,38 @@ const styles = StyleSheet.create({
   countNumber: {
     fontSize: 56,
     fontWeight: '900',
-    color: '#EA580C',
+    color: colors.orange700,
     lineHeight: 60,
   },
   countUnit: {
     fontSize: 22,
     fontWeight: '800',
-    color: '#EA580C',
+    color: colors.orange700,
     marginBottom: 6,
   },
   milestoneBadge: {
-    backgroundColor: '#FFF7ED',
-    borderRadius: 10,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderWidth: 1,
-    borderColor: '#FED7AA',
-  },
-  milestoneText: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#C2410C',
+    alignSelf: 'center',
   },
   thumbnail: {
     width: '100%',
     aspectRatio: 1.5,
     borderRadius: 12,
-    backgroundColor: '#E5E7EB',
+    backgroundColor: colors.grey200,
   },
   placeName: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#374151',
+    color: colors.grey700,
   },
   homeButton: {
-    backgroundColor: '#0064FF',
-    borderRadius: 12,
-    paddingVertical: 14,
-    paddingHorizontal: 40,
     marginTop: 4,
+    alignSelf: 'stretch',
   },
-  homeButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '800',
+  homeButtonContainer: {
+    borderRadius: 12,
   },
   autoCloseHint: {
     fontSize: 12,
-    color: '#9CA3AF',
+    color: colors.grey500,
   },
 });

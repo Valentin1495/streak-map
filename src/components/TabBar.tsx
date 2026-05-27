@@ -1,5 +1,6 @@
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { colors } from '@toss/tds-react-native';
 
 export type TabKey = 'home' | 'record' | 'settings';
 
@@ -45,12 +46,12 @@ export function TabBar({ activeTab, onTabPress }: TabBarProps) {
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    backgroundColor: 'white',
+    backgroundColor: colors.white,
     borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
+    borderTopColor: colors.grey100,
     paddingBottom: 16,
     paddingTop: 8,
-    shadowColor: '#000',
+    shadowColor: colors.black,
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.06,
     shadowRadius: 8,
@@ -67,10 +68,10 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#9CA3AF',
+    color: colors.grey500,
   },
   labelActive: {
-    color: '#0064FF',
+    color: colors.blue500,
   },
   indicator: {
     position: 'absolute',
@@ -78,6 +79,6 @@ const styles = StyleSheet.create({
     width: 28,
     height: 3,
     borderRadius: 2,
-    backgroundColor: '#0064FF',
+    backgroundColor: colors.blue500,
   },
 });

@@ -1,18 +1,29 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { createRoute } from '@granite-js/react-native';
 import { getAnonymousKey, loadFullScreenAd, showFullScreenAd } from '@apps-in-toss/framework';
-import { getDailyReplacementCount, loadPhotos, Photo } from '../lib/supabase';
+import { Button, colors } from '@toss/tds-react-native';
+import {
+  deletePhoto,
+  getDailyPhotoLimit,
+  grantPhotoSlotReward,
+  hasClaimedPhotoSlotRewardToday,
+  loadPhotos,
+  MAX_DAILY_PHOTOS,
+  MAX_REWARDED_DAILY_PHOTOS,
+  Photo,
+  setRepresentativePhoto,
+} from '../lib/supabase';
 import { calculateStreak, hasTodayRecord } from '../lib/streak';
-import { consumePendingCapture, setPendingReplacementSource } from '../lib/captureResult';
+import { consumePendingCapture } from '../lib/captureResult';
 import {
   applyProtectionIfNeeded,
   checkAndAwardMilestone,
@@ -23,8 +34,6 @@ import {
 } from '../lib/milestones';
 import { track } from '../lib/analytics';
 import { TabBar, TabKey } from '../components/TabBar';
-import { StreakCounter } from '../components/StreakCounter';
-import { WeekStrip } from '../components/WeekStrip';
 import { TodayPhoto } from '../components/TodayPhoto';
 import { RecordView } from '../components/RecordView';
 import { RewardAdStatus, SettingsView } from '../components/SettingsView';
@@ -60,41 +69,77 @@ function OnboardingView({ onStart }: { onStart: () => void }) {
           매일 한 컷씩 찍으면{'\n'}내 삶의 지도가 완성돼요
         </Text>
       </View>
-      <TouchableOpacity style={styles.startButton} onPress={onStart} activeOpacity={0.85}>
-        <Text style={styles.startButtonText}>시작하기</Text>
-      </TouchableOpacity>
+      <Button
+        type="light"
+        style="fill"
+        size="large"
+        display="full"
+        onPress={onStart}
+        viewStyle={styles.startButton}
+        containerStyle={styles.startButtonContainer}
+      >
+        시작하기
+      </Button>
     </View>
   );
 }
 
+function promoteLatestRepresentative(photos: Photo[], streakDate: string): Photo[] {
+  const latestPhoto = photos
+    .filter((photo) => photo.streak_date === streakDate)
+    .sort((a, b) => b.taken_at.localeCompare(a.taken_at))[0];
+
+  if (latestPhoto == null) {
+    return photos;
+  }
+
+  return photos.map((photo) => {
+    if (photo.streak_date !== streakDate) return photo;
+    return {
+      ...photo,
+      is_representative: photo.id === latestPhoto.id,
+    };
+  });
+}
+
 function HomeView({
-  photos,
-  streak,
   todayDone,
-  todayPhoto,
-  ticketCount,
-  todayReplacementCount,
-  replacementAdStatus,
+  todayPhotos,
+  todayPhotoCount,
+  dailyPhotoLimit,
+  slotAdStatus,
   onCapture,
+  onSelectRepresentative,
+  onDeletePhoto,
+  settingRepresentativePhotoId,
+  deletingPhotoId,
 }: {
-  photos: Photo[];
-  streak: number;
   todayDone: boolean;
-  todayPhoto: Photo | null;
-  ticketCount: number;
-  todayReplacementCount: number;
-  replacementAdStatus: RewardAdStatus;
+  todayPhotos: Photo[];
+  todayPhotoCount: number;
+  dailyPhotoLimit: number;
+  slotAdStatus: RewardAdStatus;
   onCapture: () => void;
+  onSelectRepresentative: (photo: Photo) => void;
+  onDeletePhoto: (photo: Photo) => void;
+  settingRepresentativePhotoId: string | null;
+  deletingPhotoId: string | null;
 }) {
-  const replacementRequiresAd = todayDone && todayReplacementCount >= 1;
-  const ctaDisabled = replacementRequiresAd && replacementAdStatus !== 'ready';
+  const reachedDailyLimit = todayPhotoCount >= dailyPhotoLimit;
+  const canEarnExtraSlot =
+    reachedDailyLimit &&
+    dailyPhotoLimit === MAX_DAILY_PHOTOS &&
+    todayPhotoCount < MAX_REWARDED_DAILY_PHOTOS;
+  const ctaDisabled =
+    reachedDailyLimit && (!canEarnExtraSlot || slotAdStatus !== 'ready');
   const ctaLabel = (() => {
     if (!todayDone) return '오늘 기록하기';
-    if (!replacementRequiresAd) return '오늘 한 컷 바꾸기';
-    if (replacementAdStatus === 'ready') return '광고 보고 한 번 더 바꾸기';
-    if (replacementAdStatus === 'showing') return '광고 여는 중';
-    if (replacementAdStatus === 'unsupported') return '토스 앱에서 다시 바꿀 수 있어요';
-    return '교체 광고 준비 중';
+    if (!reachedDailyLimit) return '한 컷 더 남기기';
+    if (!canEarnExtraSlot) return `오늘은 최대 ${dailyPhotoLimit}장까지 기록했어요`;
+    if (slotAdStatus === 'ready') return '광고 보고 한 컷 더 남기기';
+    if (slotAdStatus === 'showing') return '광고 여는 중';
+    if (slotAdStatus === 'unsupported') return '토스 앱에서 추가할 수 있어요';
+    return '추가 슬롯 준비 중';
   })();
 
   return (
@@ -103,22 +148,37 @@ function HomeView({
       contentContainerStyle={styles.homeScrollContent}
       showsVerticalScrollIndicator={false}
     >
-      <StreakCounter streak={streak} hasTodayRecord={todayDone} ticketCount={ticketCount} />
-      <WeekStrip photos={photos} />
-      <TodayPhoto todayPhoto={todayPhoto} />
-      <TouchableOpacity
-        style={[
-          styles.ctaButton,
-          todayDone && styles.ctaButtonDone,
-          ctaDisabled && styles.ctaButtonDisabled,
-        ]}
-        onPress={onCapture}
-        disabled={ctaDisabled}
-        activeOpacity={0.85}
-      >
-        <Text style={styles.ctaIcon}>{todayDone ? '✓' : '📷'}</Text>
-        <Text style={styles.ctaText}>{ctaLabel}</Text>
-      </TouchableOpacity>
+      <TodayPhoto
+        todayPhotos={todayPhotos}
+        maxDailyPhotos={dailyPhotoLimit}
+        onSelectRepresentative={onSelectRepresentative}
+        onDeletePhoto={onDeletePhoto}
+        settingRepresentativePhotoId={settingRepresentativePhotoId}
+        deletingPhotoId={deletingPhotoId}
+      />
+      <View style={styles.homeBottomContainer}>
+        {todayDone && (
+          <Text style={styles.todayDoneHint}>
+            {dailyPhotoLimit > MAX_DAILY_PHOTOS
+              ? `오늘 기록 완료 · 광고 보상으로 오늘은 최대 ${dailyPhotoLimit}장까지 가능해요`
+              : `오늘 기록 완료 · 원하면 최대 ${MAX_DAILY_PHOTOS}장까지 남길 수 있어요`}
+          </Text>
+        )}
+        <Button
+          type={todayDone ? 'dark' : 'primary'}
+          style="fill"
+          size="large"
+          display="full"
+          onPress={onCapture}
+          disabled={ctaDisabled}
+          loading={slotAdStatus === 'showing'}
+          leftAccessory={<Text style={styles.ctaIcon}>{todayDone ? '✓' : '📷'}</Text>}
+          viewStyle={styles.ctaButton}
+          containerStyle={styles.ctaButtonContainer}
+        >
+          {ctaLabel}
+        </Button>
+      </View>
     </ScrollView>
   );
 }
@@ -133,8 +193,10 @@ function HomePage() {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [ticketCount, setTicketCount] = useState(0);
   const [rewardAdStatus, setRewardAdStatus] = useState<RewardAdStatus>('loading');
-  const [todayReplacementCount, setTodayReplacementCount] = useState(0);
-  const [replacementAdStatus, setReplacementAdStatus] = useState<RewardAdStatus>('loading');
+  const [dailyPhotoLimit, setDailyPhotoLimit] = useState(MAX_DAILY_PHOTOS);
+  const [slotAdStatus, setSlotAdStatus] = useState<RewardAdStatus>('loading');
+  const [settingRepresentativePhotoId, setSettingRepresentativePhotoId] = useState<string | null>(null);
+  const [deletingPhotoId, setDeletingPhotoId] = useState<string | null>(null);
   const [protectedDates, setProtectedDates] = useState<string[]>([]);
   const [modal, setModal] = useState<ModalState>({
     visible: false,
@@ -148,17 +210,83 @@ function HomePage() {
   const rewardAdCleanupRef = useRef<(() => void) | null>(null);
   const isRewardAdLoadedRef = useRef(false);
   const hasGrantedCurrentRewardRef = useRef(false);
-  const replacementAdCleanupRef = useRef<(() => void) | null>(null);
-  const isReplacementAdLoadedRef = useRef(false);
-  const hasEarnedReplacementAdRewardRef = useRef(false);
+  const slotAdCleanupRef = useRef<(() => void) | null>(null);
+  const isSlotAdLoadedRef = useRef(false);
+  const hasEarnedSlotAdRewardRef = useRef(false);
 
   const todayDone = hasTodayRecord(photos);
   const streak = calculateStreak(photos, protectedDates);
-  const todayPhoto = photos.find((p) => {
+  const todayPhotos = photos.filter((p) => {
     const kstOffset = 9 * 60 * 60 * 1000;
     const today = new Date(Date.now() + kstOffset).toISOString().slice(0, 10);
     return p.streak_date === today;
-  }) ?? null;
+  });
+  const handleSelectRepresentative = useCallback(
+    async (photo: Photo) => {
+      if (photo.is_representative || settingRepresentativePhotoId != null) return;
+
+      const previousPhotos = photos;
+      const nextPhotos = photos.map((item) => {
+        if (item.streak_date !== photo.streak_date) return item;
+        return {
+          ...item,
+          is_representative: item.id === photo.id,
+        };
+      });
+
+      setSettingRepresentativePhotoId(photo.id);
+      setPhotos(nextPhotos);
+
+      try {
+        await setRepresentativePhoto(photo);
+      } catch (e) {
+        console.error(e);
+        setPhotos(previousPhotos);
+      } finally {
+        setSettingRepresentativePhotoId(null);
+      }
+    },
+    [photos, settingRepresentativePhotoId]
+  );
+
+  const handleDeletePhoto = useCallback(
+    (photo: Photo) => {
+      if (deletingPhotoId != null) return;
+
+      const sameDayCount = photos.filter((item) => item.streak_date === photo.streak_date).length;
+      Alert.alert(
+        '사진을 삭제할까요?',
+        sameDayCount === 1
+          ? '오늘의 마지막 사진이라 삭제하면 오늘 기록도 사라져요.'
+          : '삭제한 사진은 복구할 수 없어요.',
+        [
+          { text: '취소', style: 'cancel' },
+          {
+            text: '삭제',
+            style: 'destructive',
+            onPress: () => {
+              const previousPhotos = photos;
+              const remainingPhotos = photos.filter((item) => item.id !== photo.id);
+              const nextPhotos = photo.is_representative
+                ? promoteLatestRepresentative(remainingPhotos, photo.streak_date)
+                : remainingPhotos;
+
+              setDeletingPhotoId(photo.id);
+              setPhotos(nextPhotos);
+
+              void deletePhoto(photo)
+                .catch((e) => {
+                  console.error(e);
+                  setPhotos(previousPhotos);
+                })
+                .finally(() => setDeletingPhotoId(null));
+            },
+          },
+        ]
+      );
+    },
+    [deletingPhotoId, photos]
+  );
 
   const fetchPhotos = useCallback(async (uid: string) => {
     try {
@@ -181,14 +309,14 @@ function HomePage() {
     }
   }, []);
 
-  const refreshTodayReplacementCount = useCallback(async (uid: string) => {
+  const refreshDailyPhotoLimit = useCallback(async (uid: string) => {
     try {
-      const count = await getDailyReplacementCount(uid);
-      setTodayReplacementCount(count);
-      return count;
+      const limit = await getDailyPhotoLimit(uid);
+      setDailyPhotoLimit(limit);
+      return limit;
     } catch (e) {
       console.error(e);
-      return 0;
+      return MAX_DAILY_PHOTOS;
     }
   }, []);
 
@@ -229,10 +357,10 @@ function HomePage() {
       return;
     }
 
-    replacementAdCleanupRef.current?.();
-    replacementAdCleanupRef.current = null;
-    isReplacementAdLoadedRef.current = false;
-    setReplacementAdStatus('loading');
+    slotAdCleanupRef.current?.();
+    slotAdCleanupRef.current = null;
+    isSlotAdLoadedRef.current = false;
+    setSlotAdStatus('loading');
 
     rewardAdCleanupRef.current?.();
     isRewardAdLoadedRef.current = false;
@@ -254,10 +382,10 @@ function HomePage() {
     });
   }, [syncRewardAdEligibility]);
 
-  const loadReplacementAd = useCallback(() => {
+  const loadSlotAd = useCallback(() => {
     if (!loadFullScreenAd.isSupported() || !showFullScreenAd.isSupported()) {
-      isReplacementAdLoadedRef.current = false;
-      setReplacementAdStatus('unsupported');
+      isSlotAdLoadedRef.current = false;
+      setSlotAdStatus('unsupported');
       return;
     }
 
@@ -266,22 +394,22 @@ function HomePage() {
     isRewardAdLoadedRef.current = false;
     setRewardAdStatus('loading');
 
-    replacementAdCleanupRef.current?.();
-    isReplacementAdLoadedRef.current = false;
-    setReplacementAdStatus('loading');
+    slotAdCleanupRef.current?.();
+    isSlotAdLoadedRef.current = false;
+    setSlotAdStatus('loading');
 
-    replacementAdCleanupRef.current = loadFullScreenAd({
+    slotAdCleanupRef.current = loadFullScreenAd({
       options: { adGroupId: REWARDED_AD_GROUP_ID },
       onEvent: (event) => {
         if (event.type === 'loaded') {
-          isReplacementAdLoadedRef.current = true;
-          setReplacementAdStatus('ready');
+          isSlotAdLoadedRef.current = true;
+          setSlotAdStatus('ready');
         }
       },
       onError: (error) => {
-        console.warn('Replacement ad load failed:', error);
-        isReplacementAdLoadedRef.current = false;
-        setReplacementAdStatus('loading');
+        console.warn('Photo slot ad load failed:', error);
+        isSlotAdLoadedRef.current = false;
+        setSlotAdStatus('loading');
       },
     });
   }, []);
@@ -354,7 +482,7 @@ function HomePage() {
           dataPromise,
           refreshTicketCount(uid),
           refreshProtectedDates(uid),
-          refreshTodayReplacementCount(uid),
+          refreshDailyPhotoLimit(uid),
         ]);
 
         if (data != null && data.length === 0) {
@@ -379,7 +507,7 @@ function HomePage() {
     runProtectionCheck,
     refreshTicketCount,
     refreshProtectedDates,
-    refreshTodayReplacementCount,
+    refreshDailyPhotoLimit,
   ]);
 
   useEffect(() => {
@@ -404,23 +532,45 @@ function HomePage() {
 
   useEffect(() => {
     const uid = userIdRef.current;
-    if (uid == null || activeTab !== 'home' || !todayDone || todayReplacementCount < 1) {
+    if (
+      uid == null ||
+      activeTab !== 'home' ||
+      todayPhotos.length < dailyPhotoLimit ||
+      dailyPhotoLimit !== MAX_DAILY_PHOTOS ||
+      todayPhotos.length >= MAX_REWARDED_DAILY_PHOTOS
+    ) {
       return;
     }
 
     if (
-      !isReplacementAdLoadedRef.current &&
-      replacementAdStatus !== 'unsupported' &&
-      replacementAdStatus !== 'showing'
+      !isSlotAdLoadedRef.current &&
+      slotAdStatus !== 'unsupported' &&
+      slotAdStatus !== 'showing' &&
+      slotAdStatus !== 'claimed_today'
     ) {
-      loadReplacementAd();
+      void hasClaimedPhotoSlotRewardToday(uid)
+        .then((claimed) => {
+          if (claimed) {
+            setDailyPhotoLimit(MAX_REWARDED_DAILY_PHOTOS);
+            setSlotAdStatus('claimed_today');
+            return;
+          }
+          loadSlotAd();
+        })
+        .catch(console.error);
     }
-  }, [activeTab, todayDone, todayReplacementCount, replacementAdStatus, loadReplacementAd]);
+  }, [
+    activeTab,
+    dailyPhotoLimit,
+    todayPhotos.length,
+    slotAdStatus,
+    loadSlotAd,
+  ]);
 
   useEffect(() => {
     return () => {
       rewardAdCleanupRef.current?.();
-      replacementAdCleanupRef.current?.();
+      slotAdCleanupRef.current?.();
     };
   }, []);
 
@@ -438,7 +588,7 @@ function HomePage() {
         dataPromise,
         refreshTicketCount(uid),
         refreshProtectedDates(uid),
-        refreshTodayReplacementCount(uid),
+        refreshDailyPhotoLimit(uid),
       ]);
       if (data != null) {
         await checkPendingCapture(data, uid, freshProtectedDates);
@@ -451,7 +601,7 @@ function HomePage() {
     runProtectionCheck,
     refreshTicketCount,
     refreshProtectedDates,
-    refreshTodayReplacementCount,
+    refreshDailyPhotoLimit,
     checkPendingCapture,
   ]);
 
@@ -462,48 +612,62 @@ function HomePage() {
       return;
     }
 
-    const count = await refreshTodayReplacementCount(uid);
-    if (count < 1) {
-      setPendingReplacementSource('free');
+    if (todayPhotos.length < dailyPhotoLimit) {
       navigation.navigate('/capture');
       return;
     }
 
-    if (replacementAdStatus !== 'ready' || !isReplacementAdLoadedRef.current) {
+    if (
+      dailyPhotoLimit !== MAX_DAILY_PHOTOS ||
+      todayPhotos.length >= MAX_REWARDED_DAILY_PHOTOS
+    ) {
       return;
     }
 
-    setReplacementAdStatus('showing');
-    hasEarnedReplacementAdRewardRef.current = false;
+    if (slotAdStatus !== 'ready' || !isSlotAdLoadedRef.current) {
+      return;
+    }
+
+    setSlotAdStatus('showing');
+    hasEarnedSlotAdRewardRef.current = false;
     showFullScreenAd({
       options: { adGroupId: REWARDED_AD_GROUP_ID },
       onEvent: (event) => {
         if (event.type === 'userEarnedReward') {
-          if (hasEarnedReplacementAdRewardRef.current) return;
-          hasEarnedReplacementAdRewardRef.current = true;
-          track('replacement_ad_result', { result: 'earned' });
-          setPendingReplacementSource('rewarded_ad');
-          navigation.navigate('/capture');
+          if (hasEarnedSlotAdRewardRef.current) return;
+          hasEarnedSlotAdRewardRef.current = true;
+          void grantPhotoSlotReward(uid)
+            .then((result) => {
+              setDailyPhotoLimit(MAX_REWARDED_DAILY_PHOTOS);
+              setSlotAdStatus('claimed_today');
+              track('photo_slot_ad_result', { result });
+              navigation.navigate('/capture');
+            })
+            .catch((error) => {
+              console.error(error);
+              setSlotAdStatus('loading');
+              loadSlotAd();
+            });
         } else if (event.type === 'dismissed') {
-          isReplacementAdLoadedRef.current = false;
-          setReplacementAdStatus('loading');
-          if (!hasEarnedReplacementAdRewardRef.current) {
-            track('replacement_ad_result', { result: 'dismissed' });
+          isSlotAdLoadedRef.current = false;
+          setSlotAdStatus('loading');
+          if (!hasEarnedSlotAdRewardRef.current) {
+            track('photo_slot_ad_result', { result: 'dismissed' });
           }
-          loadReplacementAd();
+          loadSlotAd();
         } else if (event.type === 'failedToShow') {
-          isReplacementAdLoadedRef.current = false;
-          setReplacementAdStatus('loading');
-          track('replacement_ad_result', { result: 'failed_to_show' });
-          loadReplacementAd();
+          isSlotAdLoadedRef.current = false;
+          setSlotAdStatus('loading');
+          track('photo_slot_ad_result', { result: 'failed_to_show' });
+          loadSlotAd();
         }
       },
       onError: (error) => {
-        console.warn('Replacement ad show failed:', error);
-        isReplacementAdLoadedRef.current = false;
-        setReplacementAdStatus('loading');
-        track('replacement_ad_result', { result: 'error' });
-        loadReplacementAd();
+        console.warn('Photo slot ad show failed:', error);
+        isSlotAdLoadedRef.current = false;
+        setSlotAdStatus('loading');
+        track('photo_slot_ad_result', { result: 'error' });
+        loadSlotAd();
       },
     });
   };
@@ -571,7 +735,7 @@ function HomePage() {
   if (isLoading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#0064FF" />
+        <ActivityIndicator size="large" color={colors.blue500} />
       </View>
     );
   }
@@ -581,7 +745,7 @@ function HomePage() {
   }
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['left', 'right', 'bottom']}>
+    <SafeAreaView style={styles.safeArea} edges={['left', 'right']}>
       {error != null && (
         <View style={styles.errorBar}>
           <Text style={styles.errorText}>{error}</Text>
@@ -591,14 +755,16 @@ function HomePage() {
       <View style={styles.body}>
         {activeTab === 'home' && (
           <HomeView
-            photos={photos}
-            streak={streak}
             todayDone={todayDone}
-            todayPhoto={todayPhoto}
-            ticketCount={ticketCount}
-            todayReplacementCount={todayReplacementCount}
-            replacementAdStatus={replacementAdStatus}
+            todayPhotos={todayPhotos}
+            todayPhotoCount={todayPhotos.length}
+            dailyPhotoLimit={dailyPhotoLimit}
+            slotAdStatus={slotAdStatus}
             onCapture={handleCapture}
+            onSelectRepresentative={handleSelectRepresentative}
+            onDeletePhoto={handleDeletePhoto}
+            settingRepresentativePhotoId={settingRepresentativePhotoId}
+            deletingPhotoId={deletingPhotoId}
           />
         )}
         {activeTab === 'record' && (
@@ -606,6 +772,7 @@ function HomePage() {
             photos={photos}
             onPhotosChange={setPhotos}
             streak={streak}
+            ticketCount={ticketCount}
           />
         )}
         {activeTab === 'settings' && (
@@ -652,23 +819,23 @@ function HomePage() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.grey50,
   },
   center: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.grey50,
   },
   errorBar: {
-    backgroundColor: '#FEE2E2',
+    backgroundColor: colors.red50,
     marginHorizontal: 16,
     borderRadius: 8,
     padding: 10,
     marginBottom: 4,
   },
   errorText: {
-    color: '#DC2626',
+    color: colors.red600,
     fontSize: 13,
     fontWeight: '600',
   },
@@ -679,45 +846,33 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   homeScrollContent: {
+    flexGrow: 1,
     paddingTop: 8,
     paddingBottom: 24,
     gap: 20,
   },
+  homeBottomContainer: {
+    marginTop: 'auto',
+    gap: 12,
+  },
   ctaButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#0064FF',
-    borderRadius: 14,
-    paddingVertical: 16,
     marginHorizontal: 16,
-    gap: 8,
-    shadowColor: '#0064FF',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 8,
-    elevation: 6,
   },
-  ctaButtonDone: {
-    backgroundColor: '#059669',
-    shadowColor: '#059669',
+  ctaButtonContainer: {
+    borderRadius: 14,
   },
-  ctaButtonDisabled: {
-    backgroundColor: '#94A3B8',
-    shadowOpacity: 0,
-    elevation: 0,
+  todayDoneHint: {
+    marginHorizontal: 16,
+    color: colors.grey600,
+    fontSize: 12,
+    fontWeight: '600',
   },
   ctaIcon: {
     fontSize: 20,
   },
-  ctaText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '800',
-  },
   onboardingContainer: {
     flex: 1,
-    backgroundColor: '#0064FF',
+    backgroundColor: colors.blue500,
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingTop: 80,
@@ -736,7 +891,7 @@ const styles = StyleSheet.create({
   onboardingTitle: {
     fontSize: 36,
     fontWeight: '900',
-    color: 'white',
+    color: colors.white,
     textAlign: 'center',
     lineHeight: 44,
   },
@@ -748,20 +903,9 @@ const styles = StyleSheet.create({
     lineHeight: 28,
   },
   startButton: {
-    backgroundColor: 'white',
-    borderRadius: 16,
-    paddingVertical: 18,
     width: '100%',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 6,
   },
-  startButtonText: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#0064FF',
+  startButtonContainer: {
+    borderRadius: 16,
   },
 });

@@ -1,5 +1,6 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import { colors } from '@toss/tds-react-native';
 import { Photo } from '../lib/supabase';
 
 const DAY_LABELS = ['일', '월', '화', '수', '목', '금', '토'];
@@ -72,10 +73,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingVertical: 12,
-    backgroundColor: 'white',
+    backgroundColor: colors.white,
     marginHorizontal: 16,
     borderRadius: 16,
-    shadowColor: '#000',
+    shadowColor: colors.black,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.06,
     shadowRadius: 4,
@@ -88,40 +89,40 @@ const styles = StyleSheet.create({
   dayLabel: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#9CA3AF',
+    color: colors.grey500,
   },
   dayLabelToday: {
-    color: '#0064FF',
+    color: colors.blue500,
   },
   circle: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.grey100,
     alignItems: 'center',
     justifyContent: 'center',
   },
   circleActive: {
-    backgroundColor: '#0064FF',
+    backgroundColor: colors.blue500,
   },
   circleToday: {
     borderWidth: 2,
-    borderColor: '#0064FF',
-    backgroundColor: '#EFF6FF',
+    borderColor: colors.blue500,
+    backgroundColor: colors.blue50,
   },
   dayNum: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#6B7280',
+    color: colors.grey600,
   },
   dayNumActive: {
-    color: 'white',
+    color: colors.white,
   },
   todayDot: {
     width: 4,
     height: 4,
     borderRadius: 2,
-    backgroundColor: '#0064FF',
+    backgroundColor: colors.blue500,
     marginTop: -4,
   },
 });

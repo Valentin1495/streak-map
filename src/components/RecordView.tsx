@@ -1,6 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
-  ActivityIndicator,
   Image,
   Modal,
   ScrollView,
@@ -8,10 +7,16 @@ import {
   Text,
   TouchableOpacity,
   View,
+  Animated,
+  Dimensions,
+  Alert,
 } from 'react-native';
+import { Button, colors } from '@toss/tds-react-native';
 import { Photo, getPhotoUrl, deletePhoto } from '../lib/supabase';
 import { MapWebView } from './MapWebView';
 import { track } from '../lib/analytics';
+import { StreakCounter } from './StreakCounter';
+import { WeekStrip } from './WeekStrip';
 
 type RecordViewMode = 'map' | 'calendar';
 
@@ -27,7 +32,13 @@ interface CalendarViewProps {
 }
 
 function CalendarView({ photos, streak, onPhotoPress }: CalendarViewProps) {
-  const photosByDate = new Map(photos.map((p) => [p.streak_date, p]));
+  const photosByDate = new Map<string, Photo>();
+  photos.forEach((photo) => {
+    const current = photosByDate.get(photo.streak_date);
+    if (current == null || photo.is_representative) {
+      photosByDate.set(photo.streak_date, photo);
+    }
+  });
   const today = toKstDateString(new Date());
   const parts = today.split('-').map(Number);
   const year = parts[0] as number;
@@ -48,7 +59,7 @@ function CalendarView({ photos, streak, onPhotoPress }: CalendarViewProps) {
   ).size;
 
   return (
-    <ScrollView contentContainerStyle={calStyles.container}>
+    <View style={calStyles.container}>
       <View style={calStyles.monthHeader}>
         <Text style={calStyles.monthTitle}>
           {year}년 {month}월
@@ -122,7 +133,7 @@ function CalendarView({ photos, streak, onPhotoPress }: CalendarViewProps) {
           <Text style={calStyles.statLabel}>방문 장소</Text>
         </View>
       </View>
-    </ScrollView>
+    </View>
   );
 }
 
@@ -130,30 +141,95 @@ interface RecordViewProps {
   photos: Photo[];
   onPhotosChange: (photos: Photo[]) => void;
   streak: number;
+  ticketCount?: number;
 }
 
-export function RecordView({ photos, onPhotosChange, streak }: RecordViewProps) {
+export function RecordView({ photos, onPhotosChange, streak, ticketCount }: RecordViewProps) {
   const [mode, setMode] = useState<RecordViewMode>('map');
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
+  const [groupPhotos, setGroupPhotos] = useState<Photo[]>([]);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // Custom Bottom Sheet Animation States
+  const [modalVisible, setModalVisible] = useState(false);
+  const [displayPhoto, setDisplayPhoto] = useState<Photo | null>(null);
+  const [displayGroup, setDisplayGroup] = useState<Photo[]>([]);
+  const slideAnim = useRef(new Animated.Value(Dimensions.get('window').height)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (selectedPhoto != null) {
+      setDisplayPhoto(selectedPhoto);
+      setDisplayGroup(groupPhotos);
+      setModalVisible(true);
+      Animated.parallel([
+        Animated.timing(slideAnim, {
+          toValue: 0,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    } else {
+      Animated.parallel([
+        Animated.timing(slideAnim, {
+          toValue: Dimensions.get('window').height,
+          duration: 250,
+          useNativeDriver: true,
+        }),
+        Animated.timing(fadeAnim, {
+          toValue: 0,
+          duration: 250,
+          useNativeDriver: true,
+        }),
+      ]).start(() => {
+        setModalVisible(false);
+        setDisplayPhoto(null);
+        setDisplayGroup([]);
+      });
+    }
+  }, [selectedPhoto, groupPhotos, slideAnim, fadeAnim]);
 
   const handleModeChange = (newMode: RecordViewMode) => {
     setMode(newMode);
     track('record_tab_view_changed', { view: newMode });
   };
 
-  const handleDelete = async () => {
+  const handlePinTap = (photo: Photo, group?: Photo[]) => {
+    setSelectedPhoto(photo);
+    setGroupPhotos(group && group.length > 1 ? group : []);
+  };
+
+  const handleDelete = () => {
     if (selectedPhoto == null) return;
-    try {
-      setIsDeleting(true);
-      await deletePhoto(selectedPhoto);
-      onPhotosChange(photos.filter((p) => p.id !== selectedPhoto.id));
-      setSelectedPhoto(null);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setIsDeleting(false);
-    }
+    
+    Alert.alert(
+      '사진을 삭제할까요?',
+      '삭제한 사진은 복구할 수 없어요.',
+      [
+        { text: '취소', style: 'cancel' },
+        {
+          text: '삭제',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setIsDeleting(true);
+              await deletePhoto(selectedPhoto);
+              onPhotosChange(photos.filter((p) => p.id !== selectedPhoto.id));
+              setSelectedPhoto(null);
+            } catch (e) {
+              console.error(e);
+            } finally {
+              setIsDeleting(false);
+            }
+          },
+        },
+      ]
+    );
   };
 
   return (
@@ -185,55 +261,105 @@ export function RecordView({ photos, onPhotosChange, streak }: RecordViewProps) 
 
       <View style={styles.content}>
         {mode === 'map' ? (
-          <MapWebView photos={photos} onPinTap={setSelectedPhoto} showPath={streak >= 3} />
+          <MapWebView photos={photos} onPinTap={handlePinTap} showPath={streak >= 3} />
         ) : (
-          <CalendarView photos={photos} streak={streak} onPhotoPress={setSelectedPhoto} />
+          <ScrollView>
+            <StreakCounter
+              streak={streak}
+              hasTodayRecord={photos.some((photo) => photo.streak_date === toKstDateString(new Date()))}
+              ticketCount={ticketCount}
+            />
+            <WeekStrip photos={photos} />
+            <CalendarView photos={photos} streak={streak} onPhotoPress={handlePinTap} />
+          </ScrollView>
         )}
       </View>
 
       <Modal
-        visible={selectedPhoto != null}
+        visible={modalVisible}
         transparent
-        animationType="slide"
+        animationType="none"
         onRequestClose={() => setSelectedPhoto(null)}
       >
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setSelectedPhoto(null)}
-        >
-          <TouchableOpacity activeOpacity={1} style={styles.bottomSheet}>
-            {selectedPhoto != null && (
-              <ScrollView>
+        <Animated.View style={[styles.modalOverlay, { opacity: fadeAnim }]}>
+          <TouchableOpacity
+            style={StyleSheet.absoluteFill}
+            activeOpacity={1}
+            onPress={() => setSelectedPhoto(null)}
+          />
+          <Animated.View
+            style={[
+              styles.bottomSheet,
+              {
+                transform: [{ translateY: slideAnim }],
+              },
+            ]}
+          >
+            {displayPhoto != null && (
+              <ScrollView
+                style={styles.bottomSheetContent}
+                showsVerticalScrollIndicator={false}
+              >
+                {displayGroup.length > 1 && (
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    style={styles.groupThumbnailScroll}
+                    contentContainerStyle={styles.groupThumbnailContent}
+                  >
+                    {displayGroup.map((p) => {
+                      const isSelected = displayPhoto.id === p.id;
+                      return (
+                        <TouchableOpacity
+                          key={p.id}
+                          onPress={() => setSelectedPhoto(p)}
+                          activeOpacity={0.75}
+                          style={[
+                            styles.groupThumbnailButton,
+                            isSelected && styles.groupThumbnailButtonSelected,
+                          ]}
+                        >
+                          <Image
+                            source={{ uri: getPhotoUrl(p.storage_path) }}
+                            style={styles.groupThumbnailImage}
+                            resizeMode="cover"
+                          />
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </ScrollView>
+                )}
                 <Image
-                  source={{ uri: getPhotoUrl(selectedPhoto.storage_path) }}
+                  source={{ uri: getPhotoUrl(displayPhoto.storage_path) }}
                   style={styles.detailImage}
                   resizeMode="cover"
                 />
                 <View style={styles.detailBody}>
-                  <Text style={styles.detailDate}>{selectedPhoto.streak_date}</Text>
-                  {selectedPhoto.place_name != null && selectedPhoto.place_name !== '' && (
-                    <Text style={styles.detailPlace}>📍 {selectedPhoto.place_name}</Text>
+                  <Text style={styles.detailDate}>{displayPhoto.streak_date}</Text>
+                  {displayPhoto.place_name != null && displayPhoto.place_name !== '' && (
+                    <Text style={styles.detailPlace}>📍 {displayPhoto.place_name}</Text>
                   )}
-                  {selectedPhoto.memo != null && selectedPhoto.memo !== '' && (
-                    <Text style={styles.detailMemo}>{selectedPhoto.memo}</Text>
+                  {displayPhoto.memo != null && displayPhoto.memo !== '' && (
+                    <Text style={styles.detailMemo}>{displayPhoto.memo}</Text>
                   )}
-                  <TouchableOpacity
-                    style={styles.deleteButton}
+                  <Button
+                    type="danger"
+                    style="weak"
+                    size="medium"
+                    display="full"
                     onPress={handleDelete}
                     disabled={isDeleting}
+                    loading={isDeleting}
+                    viewStyle={styles.deleteButton}
+                    containerStyle={styles.actionButtonContainer}
                   >
-                    {isDeleting ? (
-                      <ActivityIndicator color="#DC2626" />
-                    ) : (
-                      <Text style={styles.deleteText}>삭제</Text>
-                    )}
-                  </TouchableOpacity>
+                    삭제
+                  </Button>
                 </View>
               </ScrollView>
             )}
-          </TouchableOpacity>
-        </TouchableOpacity>
+          </Animated.View>
+        </Animated.View>
       </Modal>
     </View>
   );
@@ -242,7 +368,7 @@ export function RecordView({ photos, onPhotosChange, streak }: RecordViewProps) 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.grey50,
   },
   header: {
     paddingHorizontal: 16,
@@ -252,13 +378,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 22,
     fontWeight: '800',
-    color: '#111827',
+    color: colors.grey900,
   },
   segmentRow: {
     flexDirection: 'row',
     marginHorizontal: 16,
     marginBottom: 12,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.grey100,
     borderRadius: 12,
     padding: 3,
   },
@@ -269,8 +395,8 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   segmentActive: {
-    backgroundColor: 'white',
-    shadowColor: '#000',
+    backgroundColor: colors.white,
+    shadowColor: colors.black,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 3,
@@ -279,10 +405,10 @@ const styles = StyleSheet.create({
   segmentText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#6B7280',
+    color: colors.grey600,
   },
   segmentTextActive: {
-    color: '#111827',
+    color: colors.grey900,
   },
   content: {
     flex: 1,
@@ -293,16 +419,42 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   bottomSheet: {
-    backgroundColor: 'white',
+    backgroundColor: colors.white,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     maxHeight: '70%',
     overflow: 'hidden',
   },
+  bottomSheetContent: {
+    maxHeight: Dimensions.get('window').height * 0.7,
+  },
+  groupThumbnailScroll: {
+    backgroundColor: colors.grey50,
+  },
+  groupThumbnailContent: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 8,
+  },
+  groupThumbnailButton: {
+    width: 60,
+    height: 60,
+    borderRadius: 8,
+    overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  groupThumbnailButtonSelected: {
+    borderColor: colors.blue500,
+  },
+  groupThumbnailImage: {
+    width: '100%',
+    height: '100%',
+  },
   detailImage: {
     width: '100%',
     aspectRatio: 1.4,
-    backgroundColor: '#E5E7EB',
+    backgroundColor: colors.grey200,
   },
   detailBody: {
     padding: 16,
@@ -310,31 +462,24 @@ const styles = StyleSheet.create({
   },
   detailDate: {
     fontSize: 12,
-    color: '#6B7280',
+    color: colors.grey600,
     fontWeight: '600',
   },
   detailPlace: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#111827',
+    color: colors.grey900,
   },
   detailMemo: {
     fontSize: 14,
-    color: '#4B5563',
+    color: colors.grey700,
     lineHeight: 21,
   },
   deleteButton: {
     marginTop: 12,
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#FCA5A5',
   },
-  deleteText: {
-    color: '#DC2626',
-    fontWeight: '700',
-    fontSize: 14,
+  actionButtonContainer: {
+    borderRadius: 10,
   },
 });
 
@@ -349,7 +494,7 @@ const calStyles = StyleSheet.create({
   monthTitle: {
     fontSize: 17,
     fontWeight: '800',
-    color: '#111827',
+    color: colors.grey900,
   },
   dayHeaders: {
     flexDirection: 'row',
@@ -360,7 +505,7 @@ const calStyles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 12,
     fontWeight: '700',
-    color: '#9CA3AF',
+    color: colors.grey500,
   },
   grid: {
     flexDirection: 'row',
@@ -378,31 +523,31 @@ const calStyles = StyleSheet.create({
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.grey100,
   },
   dayCircleActive: {
-    backgroundColor: '#0064FF',
+    backgroundColor: colors.blue500,
   },
   dayCircleToday: {
     borderWidth: 2,
-    borderColor: '#0064FF',
-    backgroundColor: '#EFF6FF',
+    borderColor: colors.blue500,
+    backgroundColor: colors.blue50,
   },
   dayNum: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#374151',
+    color: colors.grey700,
   },
   dayNumActive: {
-    color: 'white',
+    color: colors.white,
   },
   statsRow: {
     flexDirection: 'row',
     marginTop: 24,
-    backgroundColor: 'white',
+    backgroundColor: colors.white,
     borderRadius: 16,
     padding: 16,
-    shadowColor: '#000',
+    shadowColor: colors.black,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.06,
     shadowRadius: 4,
@@ -416,15 +561,15 @@ const calStyles = StyleSheet.create({
   statValue: {
     fontSize: 15,
     fontWeight: '800',
-    color: '#111827',
+    color: colors.grey900,
   },
   statLabel: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#9CA3AF',
+    color: colors.grey500,
   },
   statDivider: {
     width: 1,
-    backgroundColor: '#E5E7EB',
+    backgroundColor: colors.grey200,
   },
 });

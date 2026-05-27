@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { Animated, StyleSheet, Text, View } from 'react-native';
+import { colors } from '@toss/tds-react-native';
 
 export type ToastVariant = 'used' | 'missed';
 
@@ -67,14 +68,14 @@ const styles = StyleSheet.create({
     left: 16,
     right: 16,
     zIndex: 100,
-    backgroundColor: '#1F2937',
+    backgroundColor: colors.grey800,
     borderRadius: 14,
     paddingHorizontal: 16,
     paddingVertical: 12,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    shadowColor: '#000',
+    shadowColor: colors.black,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.18,
     shadowRadius: 10,
@@ -90,12 +91,12 @@ const styles = StyleSheet.create({
   main: {
     fontSize: 13,
     fontWeight: '700',
-    color: 'white',
+    color: colors.white,
     lineHeight: 18,
   },
   sub: {
     fontSize: 12,
-    color: '#9CA3AF',
+    color: colors.grey500,
     fontWeight: '500',
   },
 });

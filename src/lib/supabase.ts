@@ -3,6 +3,8 @@ import { createClient } from '@supabase/supabase-js';
 const SUPABASE_URL = 'https://szegjcutxoiwwwegfkfk.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_4gTR06O_jxPF3js6ST__hw_Yk-KpP8f';
 const BUCKET = 'streak-photos';
+export const MAX_DAILY_PHOTOS = 3;
+export const MAX_REWARDED_DAILY_PHOTOS = 4;
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
@@ -16,6 +18,7 @@ export interface Photo {
   memo: string | null;
   taken_at: string;
   streak_date: string;
+  is_representative: boolean;
 }
 
 export interface InsertPhotoParams {
@@ -25,8 +28,6 @@ export interface InsertPhotoParams {
   lng: number | null;
   placeName: string | null;
   memo: string | null;
-  replaceDate?: string;
-  replacementSource?: string;
 }
 
 function toKstDateString(date: Date): string {
@@ -69,13 +70,11 @@ export async function insertPhoto(params: InsertPhotoParams): Promise<Photo> {
 
   // KST 기준 streak_date (UTC+9)
   const streakDate = toKstDateString(now);
-  const replaceDate = params.replaceDate ?? streakDate;
-
   const { data: existingPhotos, error: existingError } = await supabase
     .from('photos')
     .select('*')
     .eq('user_id', userId)
-    .eq('streak_date', replaceDate)
+    .eq('streak_date', streakDate)
     .order('taken_at', { ascending: false });
 
   if (existingError != null) {
@@ -83,64 +82,7 @@ export async function insertPhoto(params: InsertPhotoParams): Promise<Photo> {
     throw new Error(`기존 오늘 기록 확인 실패: ${existingError.message}`);
   }
 
-  const existingPhoto = existingPhotos?.[0] ?? null;
-  if (existingPhoto != null) {
-    const { data, error: updateError } = await supabase
-      .from('photos')
-      .update({
-        storage_path: storagePath,
-        lat,
-        lng,
-        place_name: placeName,
-        memo,
-        taken_at: now.toISOString(),
-        streak_date: streakDate,
-      })
-      .eq('id', existingPhoto.id)
-      .select()
-      .single();
-
-    if (updateError != null) {
-      await supabase.storage.from(BUCKET).remove([storagePath]);
-      throw new Error(`기존 오늘 기록 교체 실패: ${updateError.message}`);
-    }
-
-    const duplicateIds = existingPhotos.slice(1).map((photo) => photo.id);
-    if (duplicateIds.length > 0) {
-      const { error: deleteDuplicateError } = await supabase
-        .from('photos')
-        .delete()
-        .in('id', duplicateIds);
-
-      if (deleteDuplicateError != null) {
-        console.warn('중복 오늘 기록 정리 실패:', deleteDuplicateError.message);
-      }
-    }
-
-    const oldStoragePaths = existingPhotos.map((photo) => photo.storage_path);
-    const { error: deleteStorageError } = await supabase.storage
-      .from(BUCKET)
-      .remove(oldStoragePaths);
-
-    if (deleteStorageError != null) {
-      console.warn('기존 오늘 사진 파일 삭제 실패:', deleteStorageError.message);
-    }
-
-    const { error: replacementLogError } = await supabase
-      .from('daily_photo_replacements')
-      .insert({
-        user_id: userId,
-        replacement_date: replaceDate,
-        replaced_at: now.toISOString(),
-        source: params.replacementSource ?? 'free',
-      });
-
-    if (replacementLogError != null) {
-      console.warn('오늘 한 컷 교체 기록 저장 실패:', replacementLogError.message);
-    }
-
-    return data;
-  }
+  const dailyPhotos = existingPhotos ?? [];
 
   const { data, error: insertError } = await supabase
     .from('photos')
@@ -153,6 +95,7 @@ export async function insertPhoto(params: InsertPhotoParams): Promise<Photo> {
       memo,
       taken_at: now.toISOString(),
       streak_date: streakDate,
+      is_representative: dailyPhotos.length === 0,
     })
     .select()
     .single();
@@ -164,21 +107,50 @@ export async function insertPhoto(params: InsertPhotoParams): Promise<Photo> {
   return data;
 }
 
-export async function getDailyReplacementCount(
+export async function hasClaimedPhotoSlotRewardToday(
   userId: string,
   date = toKstDateString(new Date())
-): Promise<number> {
-  const { count, error } = await supabase
-    .from('daily_photo_replacements')
-    .select('id', { count: 'exact', head: true })
+): Promise<boolean> {
+  const { data, error } = await supabase
+    .from('daily_photo_slot_rewards')
+    .select('id')
     .eq('user_id', userId)
-    .eq('replacement_date', date);
+    .eq('reward_date', date)
+    .maybeSingle();
 
   if (error != null) {
-    throw new Error(`오늘 한 컷 교체 횟수 확인 실패: ${error.message}`);
+    throw new Error(`사진 슬롯 보상 확인 실패: ${error.message}`);
   }
 
-  return count ?? 0;
+  return data != null;
+}
+
+export async function getDailyPhotoLimit(userId: string): Promise<number> {
+  return (await hasClaimedPhotoSlotRewardToday(userId))
+    ? MAX_REWARDED_DAILY_PHOTOS
+    : MAX_DAILY_PHOTOS;
+}
+
+export type PhotoSlotRewardResult = 'granted' | 'already_claimed_today';
+
+export async function grantPhotoSlotReward(userId: string): Promise<PhotoSlotRewardResult> {
+  const today = toKstDateString(new Date());
+
+  const { error } = await supabase.from('daily_photo_slot_rewards').insert({
+    user_id: userId,
+    reward_date: today,
+    rewarded_at: new Date().toISOString(),
+    source: 'rewarded_ad',
+  });
+
+  if (error != null) {
+    if (error.code === '23505') {
+      return 'already_claimed_today';
+    }
+    throw new Error(`사진 슬롯 보상 지급 실패: ${error.message}`);
+  }
+
+  return 'granted';
 }
 
 export async function deletePhoto(photo: Photo): Promise<void> {
@@ -190,6 +162,53 @@ export async function deletePhoto(photo: Photo): Promise<void> {
   const { error: dbError } = await supabase.from('photos').delete().eq('id', photo.id);
   if (dbError != null) {
     throw new Error(`사진 정보 삭제 실패: ${dbError.message}`);
+  }
+
+  if (photo.is_representative) {
+    const { data: nextPhoto, error: nextPhotoError } = await supabase
+      .from('photos')
+      .select('id')
+      .eq('user_id', photo.user_id)
+      .eq('streak_date', photo.streak_date)
+      .order('taken_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (nextPhotoError != null) {
+      throw new Error(`대표 사진 확인 실패: ${nextPhotoError.message}`);
+    }
+
+    if (nextPhoto != null) {
+      const { error: updateError } = await supabase
+        .from('photos')
+        .update({ is_representative: true })
+        .eq('id', nextPhoto.id);
+
+      if (updateError != null) {
+        throw new Error(`대표 사진 변경 실패: ${updateError.message}`);
+      }
+    }
+  }
+}
+
+export async function setRepresentativePhoto(photo: Photo): Promise<void> {
+  const { error: resetError } = await supabase
+    .from('photos')
+    .update({ is_representative: false })
+    .eq('user_id', photo.user_id)
+    .eq('streak_date', photo.streak_date);
+
+  if (resetError != null) {
+    throw new Error(`기존 대표 사진 해제 실패: ${resetError.message}`);
+  }
+
+  const { error: updateError } = await supabase
+    .from('photos')
+    .update({ is_representative: true })
+    .eq('id', photo.id);
+
+  if (updateError != null) {
+    throw new Error(`대표 사진 설정 실패: ${updateError.message}`);
   }
 }
 

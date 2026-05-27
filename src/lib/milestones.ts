@@ -3,6 +3,7 @@ import { supabase, Photo } from './supabase';
 const MILESTONE_VALUES = [3, 7, 14, 30, 100] as const;
 const MAX_TICKETS = 2;
 const REWARDED_AD_SOURCE = 'rewarded_ad';
+const CONTACTS_VIRAL_SOURCE = 'contacts_viral';
 
 function toKstDateString(date: Date): string {
   const kstOffset = 9 * 60 * 60 * 1000;
@@ -75,6 +76,7 @@ export async function checkAndAwardMilestone(
 }
 
 export type RewardedAdTicketResult = 'granted' | 'already_claimed_today' | 'max_reached';
+export type ContactsViralTicketResult = 'granted' | 'already_claimed_today' | 'max_reached';
 
 export async function hasClaimedRewardedAdTicketToday(userId: string): Promise<boolean> {
   const today = toKstDateString(new Date());
@@ -119,6 +121,49 @@ export async function grantRewardedAdProtectionTicket(
       return 'already_claimed_today';
     }
     throw new Error(`광고 보상 지급 실패: ${error.message}`);
+  }
+
+  return 'granted';
+}
+
+export async function grantContactsViralProtectionTicket(
+  userId: string
+): Promise<ContactsViralTicketResult> {
+  const today = toKstDateString(new Date());
+
+  const { data: existing, error: existingError } = await supabase
+    .from('protection_tickets')
+    .select('id')
+    .eq('user_id', userId)
+    .eq('source', CONTACTS_VIRAL_SOURCE)
+    .eq('earned_date', today)
+    .maybeSingle();
+
+  if (existingError != null) {
+    throw new Error(`공유 리워드 확인 실패: ${existingError.message}`);
+  }
+
+  if (existing != null) {
+    return 'already_claimed_today';
+  }
+
+  const currentCount = await getProtectionTicketCount(userId);
+  if (currentCount >= MAX_TICKETS) {
+    return 'max_reached';
+  }
+
+  const { error } = await supabase.from('protection_tickets').insert({
+    user_id: userId,
+    earned_at: new Date().toISOString(),
+    earned_date: today,
+    source: CONTACTS_VIRAL_SOURCE,
+  });
+
+  if (error != null) {
+    if (error.code === '23505') {
+      return 'already_claimed_today';
+    }
+    throw new Error(`공유 리워드 지급 실패: ${error.message}`);
   }
 
   return 'granted';

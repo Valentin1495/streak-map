@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { colors } from '@toss/tds-react-native';
 
 interface StreakBannerProps {
   streak: number;
@@ -41,10 +42,10 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   active: {
-    backgroundColor: '#EAF2FF',
+    backgroundColor: colors.blue50,
   },
   inactive: {
-    backgroundColor: '#FFF7ED',
+    backgroundColor: colors.orange50,
   },
   left: {
     flexDirection: 'row',
@@ -57,21 +58,21 @@ const styles = StyleSheet.create({
   count: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#111827',
+    color: colors.grey900,
   },
   warning: {
     fontSize: 12,
-    color: '#D97706',
+    color: colors.orange700,
     marginTop: 2,
   },
   badge: {
-    backgroundColor: '#0064FF',
+    backgroundColor: colors.blue500,
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 99,
   },
   badgeText: {
-    color: 'white',
+    color: colors.white,
     fontSize: 12,
     fontWeight: '700',
   },
