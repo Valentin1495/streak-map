@@ -4,7 +4,7 @@ const SUPABASE_URL = 'https://szegjcutxoiwwwegfkfk.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_4gTR06O_jxPF3js6ST__hw_Yk-KpP8f';
 const BUCKET = 'streak-photos';
 export const MAX_DAILY_PHOTOS = 3;
-export const MAX_REWARDED_DAILY_PHOTOS = 4;
+export const MAX_REWARDED_DAILY_PHOTOS = 5;
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
@@ -109,6 +109,7 @@ export async function insertPhoto(params: InsertPhotoParams): Promise<Photo> {
 
 export async function hasClaimedPhotoSlotRewardToday(
   userId: string,
+  source: string,
   date = toKstDateString(new Date())
 ): Promise<boolean> {
   const { data, error } = await supabase
@@ -116,6 +117,7 @@ export async function hasClaimedPhotoSlotRewardToday(
     .select('id')
     .eq('user_id', userId)
     .eq('reward_date', date)
+    .eq('source', source)
     .maybeSingle();
 
   if (error != null) {
@@ -125,22 +127,35 @@ export async function hasClaimedPhotoSlotRewardToday(
   return data != null;
 }
 
-export async function getDailyPhotoLimit(userId: string): Promise<number> {
-  return (await hasClaimedPhotoSlotRewardToday(userId))
-    ? MAX_REWARDED_DAILY_PHOTOS
-    : MAX_DAILY_PHOTOS;
+export interface DailyLimitInfo {
+  limit: number;
+  hasAdReward: boolean;
+  hasShareReward: boolean;
+}
+
+export async function getDailyPhotoLimit(userId: string): Promise<DailyLimitInfo> {
+  const [hasAdReward, hasShareReward] = await Promise.all([
+    hasClaimedPhotoSlotRewardToday(userId, 'rewarded_ad'),
+    hasClaimedPhotoSlotRewardToday(userId, 'viral_share')
+  ]);
+  
+  let limit = MAX_DAILY_PHOTOS;
+  if (hasAdReward) limit += 1;
+  if (hasShareReward) limit += 1;
+  
+  return { limit, hasAdReward, hasShareReward };
 }
 
 export type PhotoSlotRewardResult = 'granted' | 'already_claimed_today';
 
-export async function grantPhotoSlotReward(userId: string): Promise<PhotoSlotRewardResult> {
+export async function grantPhotoSlotReward(userId: string, source: string = 'rewarded_ad'): Promise<PhotoSlotRewardResult> {
   const today = toKstDateString(new Date());
 
   const { error } = await supabase.from('daily_photo_slot_rewards').insert({
     user_id: userId,
     reward_date: today,
     rewarded_at: new Date().toISOString(),
-    source: 'rewarded_ad',
+    source,
   });
 
   if (error != null) {

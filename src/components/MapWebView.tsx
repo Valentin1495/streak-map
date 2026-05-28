@@ -47,8 +47,9 @@ export function MapWebView({ photos, onPinTap, showPath = false }: MapWebViewPro
       }, {} as Record<string, Photo[]>);
 
     const pins: PinData[] = Object.values(pinGroups).map((group) => {
-      // 그룹 내에서 가장 최근 사진을 대표로 사용
-      const latest = group.sort((a, b) => b.taken_at.localeCompare(a.taken_at))[0]!;
+      // 그룹 내에서 대표 사진을 우선으로 사용 (없으면 가장 최근 사진)
+      const sortedGroup = group.sort((a, b) => b.taken_at.localeCompare(a.taken_at));
+      const latest = sortedGroup.find((p) => p.is_representative) ?? sortedGroup[0]!;
       return {
         id: latest.id,
         latitude: latest.lat!,

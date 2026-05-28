@@ -10,6 +10,7 @@ import {
 import { Badge, Button, colors } from '@toss/tds-react-native';
 
 const MILESTONES = [3, 7, 14, 30, 100];
+const RECAP_MILESTONES = [7, 14, 30];
 
 interface StreakAchievedModalProps {
   visible: boolean;
@@ -29,9 +30,11 @@ export function StreakAchievedModal({
   onShowRecap,
 }: StreakAchievedModalProps) {
   const isMilestone = MILESTONES.includes(streak);
+  const hasRecap = RECAP_MILESTONES.includes(streak);
   const countAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.8)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
+  const progressAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     if (!visible) return;
@@ -39,6 +42,7 @@ export function StreakAchievedModal({
     countAnim.setValue(0);
     scaleAnim.setValue(0.8);
     opacityAnim.setValue(0);
+    progressAnim.setValue(1);
 
     Animated.parallel([
       Animated.spring(scaleAnim, {
@@ -60,16 +64,16 @@ export function StreakAchievedModal({
     ]).start();
 
     if (!isMilestone) {
+      Animated.timing(progressAnim, {
+        toValue: 0,
+        duration: 2200,
+        useNativeDriver: false,
+      }).start();
       const timer = setTimeout(onClose, 2200);
       return () => clearTimeout(timer);
     }
     return undefined;
-  }, [visible, streak, isMilestone, countAnim, scaleAnim, opacityAnim, onClose]);
-
-  const displayCount = countAnim.interpolate({
-    inputRange: [0, streak],
-    outputRange: [0, streak],
-  });
+  }, [visible, streak, isMilestone, countAnim, scaleAnim, opacityAnim, progressAnim, onClose]);
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
@@ -83,7 +87,7 @@ export function StreakAchievedModal({
           <Text style={styles.flameIcon}>🔥</Text>
 
           <View style={styles.countRow}>
-            <AnimatedCount value={displayCount} />
+            <AnimatedCount value={countAnim} />
             <Text style={styles.countUnit}>일 연속!</Text>
           </View>
 
@@ -111,15 +115,22 @@ export function StreakAchievedModal({
             style="fill"
             size="large"
             display="full"
-            onPress={streak === 7 && onShowRecap != null ? onShowRecap : onClose}
+            onPress={hasRecap && onShowRecap != null ? onShowRecap : onClose}
             viewStyle={styles.homeButton}
             containerStyle={styles.homeButtonContainer}
           >
-            {streak === 7 && onShowRecap != null ? '주간 리캡 보기 →' : '홈으로'}
+            {hasRecap && onShowRecap != null ? '회고 보기 →' : '홈으로'}
           </Button>
 
           {!isMilestone && (
-            <Text style={styles.autoCloseHint}>잠시 후 자동으로 닫혀요</Text>
+            <View style={styles.progressTrack}>
+              <Animated.View
+                style={[
+                  styles.progressBar,
+                  { width: progressAnim.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] }) },
+                ]}
+              />
+            </View>
           )}
         </Animated.View>
       </View>
@@ -127,18 +138,17 @@ export function StreakAchievedModal({
   );
 }
 
-function AnimatedCount({ value }: { value: Animated.AnimatedInterpolation<number> }) {
-  return (
-    <Animated.Text
-      style={styles.countNumber}
-    >
-      {value.interpolate({
-        inputRange: [0, 999],
-        outputRange: ['0', '999'],
-        extrapolate: 'clamp',
-      })}
-    </Animated.Text>
-  );
+function AnimatedCount({ value }: { value: Animated.Value }) {
+  const [display, setDisplay] = React.useState(0);
+
+  React.useEffect(() => {
+    const id = value.addListener(({ value: v }) => {
+      setDisplay(Math.floor(v));
+    });
+    return () => value.removeListener(id);
+  }, [value]);
+
+  return <Text style={styles.countNumber}>{display}</Text>;
 }
 
 const styles = StyleSheet.create({
@@ -204,8 +214,16 @@ const styles = StyleSheet.create({
   homeButtonContainer: {
     borderRadius: 12,
   },
-  autoCloseHint: {
-    fontSize: 12,
-    color: colors.grey500,
+  progressTrack: {
+    width: '100%',
+    height: 3,
+    backgroundColor: colors.grey100,
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  progressBar: {
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: colors.blue300,
   },
 });

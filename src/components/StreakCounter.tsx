@@ -1,14 +1,13 @@
 import React, { useEffect, useRef } from 'react';
 import { Animated, StyleSheet, Text, View } from 'react-native';
-import { Badge, colors } from '@toss/tds-react-native';
+import { colors } from '@toss/tds-react-native';
 
 interface StreakCounterProps {
   streak: number;
   hasTodayRecord: boolean;
-  ticketCount?: number;
 }
 
-export function StreakCounter({ streak, hasTodayRecord, ticketCount }: StreakCounterProps) {
+export function StreakCounter({ streak, hasTodayRecord }: StreakCounterProps) {
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
@@ -20,16 +19,17 @@ export function StreakCounter({ streak, hasTodayRecord, ticketCount }: StreakCou
     const loop = Animated.loop(
       Animated.sequence([
         Animated.timing(pulseAnim, {
-          toValue: 1.12,
-          duration: 800,
+          toValue: 1.05,
+          duration: 1400,
           useNativeDriver: true,
         }),
         Animated.timing(pulseAnim, {
           toValue: 1,
-          duration: 800,
+          duration: 1400,
           useNativeDriver: true,
         }),
-      ])
+      ]),
+      { iterations: 3 }
     );
     loop.start();
     return () => loop.stop();
@@ -44,7 +44,7 @@ export function StreakCounter({ streak, hasTodayRecord, ticketCount }: StreakCou
           { transform: [{ scale: pulseAnim }] },
         ]}
       >
-        <Text style={styles.flame}>{hasTodayRecord ? '🔥' : '💤'}</Text>
+        <Text style={styles.flame}>{hasTodayRecord ? '🔥' : '○'}</Text>
         <Text style={[styles.count, hasTodayRecord ? styles.countActive : styles.countInactive]}>
           {streak}
         </Text>
@@ -57,15 +57,9 @@ export function StreakCounter({ streak, hasTodayRecord, ticketCount }: StreakCou
         {hasTodayRecord
           ? '오늘 기록 완료!'
           : streak > 0
-            ? '오늘 기록하지 않으면 스트릭이 끊겨요'
+            ? '오늘 기록하면 연속 기록이 이어져요'
             : '첫 기록을 남겨보세요'}
       </Text>
-
-      {ticketCount != null && ticketCount > 0 && (
-        <Badge size="medium" type="blue" badgeStyle="weak">
-          {`🛡 기록 보호권 ${ticketCount}개`}
-        </Badge>
-      )}
     </View>
   );
 }

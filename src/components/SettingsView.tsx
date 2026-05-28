@@ -1,6 +1,9 @@
-import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import React, { useCallback } from 'react';
+import { StyleSheet, Text, View, Alert } from 'react-native';
 import { Badge, Button, colors } from '@toss/tds-react-native';
+import { contactsViral } from '@apps-in-toss/framework';
+import { grantPhotoSlotReward } from '../lib/supabase';
+import { RecapMilestone } from '../lib/milestones';
 
 export type RewardAdStatus =
   | 'unsupported'
@@ -12,68 +15,139 @@ export type RewardAdStatus =
 
 interface SettingsViewProps {
   userId: string | null;
-  ticketCount?: number;
-  rewardAdStatus: RewardAdStatus;
-  onRewardAdPress: () => void;
+  streak: number;
+  recapAdStatus: RewardAdStatus;
+  hasShareReward: boolean;
+  onRecapPress: (milestone: RecapMilestone) => void;
   onDebugRecapPress?: () => void;
+  onSlotRewardGranted?: () => void;
 }
-
-const REWARD_AD_LABELS: Record<RewardAdStatus, string> = {
-  unsupported: '토스 앱에서 사용할 수 있어요',
-  loading: '광고 준비 중',
-  ready: '광고 보고 보호권 받기',
-  showing: '광고 여는 중',
-  claimed_today: '오늘은 이미 받았어요',
-  max_reached: '보호권은 최대 2개까지 보관돼요',
-};
 
 export function SettingsView({
   userId,
-  ticketCount = 0,
-  rewardAdStatus,
-  onRewardAdPress,
+  streak,
+  recapAdStatus,
+  hasShareReward,
+  onRecapPress,
   onDebugRecapPress,
+  onSlotRewardGranted,
 }: SettingsViewProps) {
-  const rewardAdDisabled = rewardAdStatus !== 'ready';
+  const handleContactsViral = useCallback(() => {
+    if (userId == null || hasShareReward) return;
+    try {
+      const cleanup = contactsViral({
+        options: { moduleId: 'dayshot-share' },
+        onEvent: async (event) => {
+          if (event.type === 'sendViral') {
+            try {
+              const result = await grantPhotoSlotReward(userId, 'viral_share');
+              if (result === 'granted') {
+                Alert.alert('리워드 지급 완료!', '오늘 하루 사진을 1장 더 남길 수 있어요 📸');
+                onSlotRewardGranted?.();
+              } else {
+                Alert.alert('알림', '오늘은 이미 추가 슬롯을 받으셨어요.');
+              }
+            } catch (e) {
+              console.error(e);
+              Alert.alert('오류', '리워드 지급에 실패했어요.');
+            }
+          } else if (event.type === 'close') {
+            cleanup();
+          }
+        },
+        onError: (error) => {
+          console.error('공유 리워드 에러:', error);
+          cleanup?.();
+        },
+      });
+    } catch (error) {
+      console.error('공유 리워드 실행 중 에러:', error);
+    }
+  }, [hasShareReward, userId, onSlotRewardGranted]);
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>설정</Text>
+      <Text style={styles.title}>혜택 & 설정</Text>
 
       <View style={styles.section}>
-        <Text style={styles.sectionLabel}>기록 보호</Text>
+        <Text style={styles.sectionLabel}>연속 기록 혜택</Text>
         <View style={styles.card}>
-          <View style={styles.row}>
-            <View style={styles.rowLeft}>
-              <Text style={styles.rowIcon}>🛡️</Text>
-              <View>
-                <Text style={styles.rowTitle}>기록 보호권</Text>
-                <Text style={styles.rowSub}>내 기록의 흐름을 하루 지켜줘요</Text>
+          {([7, 14, 30] as RecapMilestone[]).map((milestone, index) => {
+            const unlocked = streak >= milestone;
+            const isLast = index === 2;
+            const title =
+              milestone === 7 ? '주간 리캡' : milestone === 14 ? '14일 장소 요약' : '월간 리캡';
+            const description =
+              milestone === 7
+                ? '이번 주 기록과 베스트 사진을 모아봐요.'
+                : milestone === 14
+                  ? '자주 간 장소와 기록 흐름을 확인해요.'
+                  : '30일 동안 쌓인 사진, 장소, 베스트 기록을 돌아봐요.';
+            const disabled = !unlocked && recapAdStatus === 'showing';
+            const buttonLabel = (() => {
+              if (unlocked) return '보기';
+              if (recapAdStatus === 'unsupported') return '토스 앱 필요';
+              if (recapAdStatus === 'loading') return '준비 중';
+              return '광고 보기';
+            })();
+
+            return (
+              <React.Fragment key={milestone}>
+                <View style={styles.benefitRow}>
+                  <View style={styles.benefitTextBlock}>
+                    <View style={styles.benefitTitleRow}>
+                      <Text style={styles.rowTitle}>{title}</Text>
+                      <Badge
+                        size="small"
+                        type={unlocked ? 'blue' : 'yellow'}
+                        badgeStyle="weak"
+                      >
+                        {unlocked ? '해금' : '광고 필요'}
+                      </Badge>
+                    </View>
+                    <Text style={styles.rowSub}>{description}</Text>
+                  </View>
+                  <Button
+                    type={unlocked ? 'primary' : 'dark'}
+                    style="fill"
+                    size="tiny"
+                    onPress={() => onRecapPress(milestone)}
+                    disabled={disabled}
+                    loading={!unlocked && recapAdStatus === 'showing'}
+                    containerStyle={styles.smallButtonContainer}
+                  >
+                    {buttonLabel}
+                  </Button>
+                </View>
+                {!isLast && <View style={styles.divider} />}
+              </React.Fragment>
+            );
+          })}
+        </View>
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionLabel}>친구 초대</Text>
+        <View style={styles.card}>
+          <View style={styles.benefitRow}>
+            <View style={styles.benefitTextBlock}>
+              <View style={styles.benefitTitleRow}>
+                <Text style={styles.rowTitle}>친구에게 공유하기</Text>
+                <Badge size="small" type="blue" badgeStyle="weak">
+                  사진 슬롯 +1
+                </Badge>
               </View>
+              <Text style={styles.rowSub}>친구에게 데이샷을 알리고 오늘 사진을 한 장 더 남겨요. (하루 1회)</Text>
             </View>
-            <Badge size="small" type="blue" badgeStyle="weak">
-              {`${ticketCount}개`}
-            </Badge>
-          </View>
-          <View style={styles.divider} />
-          <View style={styles.ticketInfo}>
-            <Text style={styles.ticketInfoText}>
-              {ticketCount > 0
-                ? '하루 누락 시 자동으로 사용돼요. 7일 달성마다 1개 지급.'
-                : '7일 연속 기록을 달성하면 보호권이 지급돼요.'}
-            </Text>
             <Button
-              type="primary"
-              style="fill"
-              size="medium"
-              display="full"
-              onPress={onRewardAdPress}
-              disabled={rewardAdDisabled}
-              loading={rewardAdStatus === 'showing'}
-              viewStyle={styles.rewardAdButton}
-              containerStyle={styles.buttonContainer}
+              type={hasShareReward ? 'dark' : 'primary'}
+              style={hasShareReward ? 'fill' : 'weak'}
+              size="tiny"
+              onPress={handleContactsViral}
+              disabled={hasShareReward}
+              containerStyle={styles.smallButtonContainer}
             >
-              {REWARD_AD_LABELS[rewardAdStatus]}
+              {hasShareReward ? '오늘 획득 완료' : '공유하기'}
             </Button>
           </View>
         </View>
@@ -84,13 +158,8 @@ export function SettingsView({
         <View style={styles.card}>
           <View style={styles.row}>
             <View style={styles.rowLeft}>
-              <Text style={styles.rowIcon}>👤</Text>
-              <View>
-                <Text style={styles.rowTitle}>익명 계정 ID</Text>
-                <Text style={styles.rowSub} numberOfLines={1}>
-                  {userId != null ? `${userId.slice(0, 8)}...` : '불러오는 중...'}
-                </Text>
-              </View>
+              <Text style={styles.rowIcon}>🔒</Text>
+              <Text style={styles.rowTitle}>내 기록은 안전하게 보관돼요</Text>
             </View>
           </View>
         </View>
@@ -170,7 +239,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   rowIcon: {
-    fontSize: 20,
+    fontSize: 13,
+    fontWeight: '800',
+    color: colors.grey600,
   },
   rowTitle: {
     fontSize: 15,
@@ -182,28 +253,36 @@ const styles = StyleSheet.create({
     color: colors.grey600,
     marginTop: 2,
   },
+  benefitRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  benefitTextBlock: {
+    flex: 1,
+    minWidth: 0,
+  },
+  benefitTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flexWrap: 'wrap',
+  },
   divider: {
     height: 1,
     backgroundColor: colors.grey100,
     marginHorizontal: 16,
   },
-  ticketInfo: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 10,
-  },
-  ticketInfoText: {
-    fontSize: 13,
-    color: colors.grey600,
-    lineHeight: 18,
-  },
-  rewardAdButton: {
-    alignSelf: 'stretch',
-  },
   debugButton: {
     margin: 12,
   },
   buttonContainer: {
+    borderRadius: 10,
+  },
+  smallButtonContainer: {
     borderRadius: 10,
   },
   version: {

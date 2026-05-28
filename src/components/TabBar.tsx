@@ -1,5 +1,6 @@
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '@toss/tds-react-native';
 
 export type TabKey = 'home' | 'record' | 'settings';
@@ -22,8 +23,9 @@ interface TabBarProps {
 }
 
 export function TabBar({ activeTab, onTabPress }: TabBarProps) {
+  const insets = useSafeAreaInsets();
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingBottom: Math.max(insets.bottom, 16) }]}>
       {TABS.map((tab) => {
         const isActive = activeTab === tab.key;
         return (
@@ -49,7 +51,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     borderTopWidth: 1,
     borderTopColor: colors.grey100,
-    paddingBottom: 16,
     paddingTop: 8,
     shadowColor: colors.black,
     shadowOffset: { width: 0, height: -2 },
