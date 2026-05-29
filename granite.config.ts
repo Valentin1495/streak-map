@@ -3,11 +3,11 @@ import { defineConfig } from '@granite-js/react-native/config';
 
 export default defineConfig({
   scheme: 'intoss',
-  appName: 'dayshot',
+  appName: 'day-shot',
   plugins: [
     appsInToss({
       brand: {
-        displayName: '오늘 한 컷',
+        displayName: '오늘의 샷',
         primaryColor: '#0064FF',
         icon: '',
       },

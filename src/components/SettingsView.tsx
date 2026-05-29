@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import { StyleSheet, Text, View, Alert } from 'react-native';
+import { StyleSheet, Text, View, Alert, ScrollView } from 'react-native';
 import { Badge, Button, colors } from '@toss/tds-react-native';
 import { contactsViral } from '@apps-in-toss/framework';
 import { grantPhotoSlotReward } from '../lib/supabase';
@@ -66,29 +66,33 @@ export function SettingsView({
   }, [hasShareReward, userId, onSlotRewardGranted]);
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>혜택 & 설정</Text>
+    <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer} showsVerticalScrollIndicator={false}>
+      <Text style={styles.title}>혜택</Text>
 
       <View style={styles.section}>
         <Text style={styles.sectionLabel}>연속 기록 혜택</Text>
+        <Text style={styles.sectionHint}>
+          목표 일수를 연속으로 기록하면 요약 카드가 바로 열려요.{'\n'}
+          기록이 끊겼더라도 광고를 시청하면 열어볼 수 있습니다.
+        </Text>
         <View style={styles.card}>
           {([7, 14, 30] as RecapMilestone[]).map((milestone, index) => {
             const unlocked = streak >= milestone;
             const isLast = index === 2;
             const title =
-              milestone === 7 ? '주간 리캡' : milestone === 14 ? '14일 장소 요약' : '월간 리캡';
+              milestone === 7 ? '주간 요약' : milestone === 14 ? '14일 장소 요약' : '월간 요약';
             const description =
               milestone === 7
                 ? '이번 주 기록과 베스트 사진을 모아봐요.'
                 : milestone === 14
-                  ? '자주 간 장소와 기록 흐름을 확인해요.'
-                  : '30일 동안 쌓인 사진, 장소, 베스트 기록을 돌아봐요.';
+                  ? '자주 간 장소와 사진 흐름을 확인해요.'
+                  : '30일 동안 쌓인 사진, 장소, 베스트 샷을 돌아봐요.';
             const disabled = !unlocked && recapAdStatus === 'showing';
             const buttonLabel = (() => {
               if (unlocked) return '보기';
               if (recapAdStatus === 'unsupported') return '토스 앱 필요';
               if (recapAdStatus === 'loading') return '준비 중';
-              return '광고 보기';
+              return '보기';
             })();
 
             return (
@@ -102,7 +106,7 @@ export function SettingsView({
                         type={unlocked ? 'blue' : 'yellow'}
                         badgeStyle="weak"
                       >
-                        {unlocked ? '해금' : '광고 필요'}
+                        {unlocked ? '해금' : '광고 시청'}
                       </Badge>
                     </View>
                     <Text style={styles.rowSub}>{description}</Text>
@@ -137,7 +141,7 @@ export function SettingsView({
                   사진 슬롯 +1
                 </Badge>
               </View>
-              <Text style={styles.rowSub}>친구에게 데이샷을 알리고 오늘 사진을 한 장 더 남겨요. (하루 1회)</Text>
+              <Text style={styles.rowSub}>친구에게 오늘의 샷을 알리고 오늘 사진을 한 장 더 남겨요. (하루 1회)</Text>
             </View>
             <Button
               type={hasShareReward ? 'dark' : 'primary'}
@@ -183,9 +187,7 @@ export function SettingsView({
           </View>
         </View>
       )}
-
-      <Text style={styles.version}>Dayshot</Text>
-    </View>
+    </ScrollView>
   );
 }
 
@@ -193,7 +195,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.grey50,
+  },
+  contentContainer: {
     paddingTop: 8,
+    paddingBottom: 40,
   },
   title: {
     fontSize: 22,
@@ -210,9 +215,16 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.grey600,
     paddingHorizontal: 20,
-    marginBottom: 8,
+    marginBottom: 4,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
+  },
+  sectionHint: {
+    fontSize: 13,
+    color: colors.grey500,
+    paddingHorizontal: 20,
+    marginBottom: 12,
+    lineHeight: 19,
   },
   card: {
     backgroundColor: colors.white,
@@ -251,7 +263,8 @@ const styles = StyleSheet.create({
   rowSub: {
     fontSize: 13,
     color: colors.grey600,
-    marginTop: 2,
+    marginTop: 6,
+    lineHeight: 18,
   },
   benefitRow: {
     flexDirection: 'row',
@@ -284,11 +297,5 @@ const styles = StyleSheet.create({
   },
   smallButtonContainer: {
     borderRadius: 10,
-  },
-  version: {
-    textAlign: 'center',
-    fontSize: 12,
-    color: colors.grey300,
-    marginTop: 8,
   },
 });

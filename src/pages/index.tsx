@@ -94,7 +94,7 @@ function OnboardingView({ onStart }: { onStart: () => void }) {
         >
           <Text style={styles.onboardingTitle}>오늘 하루를{'\n'}한 장으로</Text>
           <Text style={styles.onboardingSubtitle}>
-            매일 한 컷씩 찍으면{'\n'}내 삶의 지도가 완성돼요
+            매일 한 장씩 찍으면{'\n'}내 삶의 지도가 완성돼요
           </Text>
         </Animated.View>
       </View>
@@ -148,7 +148,7 @@ function HomeView({
   if (!todayDone) {
     ctaLabel = '오늘 기록하기';
   } else if (!reachedDailyLimit) {
-    ctaLabel = '한 컷 더 남기기';
+    ctaLabel = '한 장 더 남기기';
   } else if (effectiveDailyLimit === MAX_REWARDED_DAILY_PHOTOS) {
     ctaLabel = `오늘은 최대 ${MAX_REWARDED_DAILY_PHOTOS}장까지 모두 기록했어요`;
     ctaDisabled = true;
@@ -802,6 +802,7 @@ const styles = StyleSheet.create({
   },
   ctaIcon: {
     fontSize: 20,
+    marginRight: 6,
   },
   onboardingContainer: {
     flex: 1,

@@ -44,7 +44,7 @@ export function StreakCounter({ streak, hasTodayRecord }: StreakCounterProps) {
           { transform: [{ scale: pulseAnim }] },
         ]}
       >
-        <Text style={styles.flame}>{hasTodayRecord ? '🔥' : '○'}</Text>
+        <Text style={[styles.flame, !hasTodayRecord && styles.flameInactive]}>🔥</Text>
         <Text style={[styles.count, hasTodayRecord ? styles.countActive : styles.countInactive]}>
           {streak}
         </Text>
@@ -87,10 +87,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.grey50,
     borderWidth: 2,
     borderColor: colors.grey200,
-    borderStyle: 'dashed',
   },
   flame: {
     fontSize: 28,
+  },
+  flameInactive: {
+    opacity: 0.3,
   },
   count: {
     fontSize: 36,

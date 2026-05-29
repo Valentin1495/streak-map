@@ -1,15 +1,14 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
-  Animated,
   Image,
   Keyboard,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   TouchableWithoutFeedback,
-  useWindowDimensions,
   View,
 } from 'react-native';
 import { createRoute } from '@granite-js/react-native';
@@ -111,7 +110,6 @@ function isBedrockLocationDenied(error: unknown): boolean {
 
 function CapturePage() {
   const navigation = Route.useNavigation();
-  const { width: windowWidth } = useWindowDimensions();
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [lat, setLat] = useState<number | null>(null);
   const [lng, setLng] = useState<number | null>(null);
@@ -119,21 +117,10 @@ function CapturePage() {
   const [memo, setMemo] = useState('');
   const [step, setStep] = useState<Step>('idle');
   const [error, setError] = useState<string | null>(null);
-  const [isTextInputFocused, setIsTextInputFocused] = useState(false);
-  const photoWidth = Math.max(windowWidth - 32, 0);
-  const photoBoxExpandedHeight = photoWidth / 1.4;
-  const photoBoxCompactHeight = photoWidth / 2.7;
-  const photoBoxHeight = useRef(new Animated.Value(photoBoxExpandedHeight)).current;
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const scrollViewRef = useRef<ScrollView>(null);
   const userIdRef = useRef<string | null>(null);
   const isWarmupSupportedRef = useRef(true);
-
-  useEffect(() => {
-    Animated.timing(photoBoxHeight, {
-      toValue: isTextInputFocused ? photoBoxCompactHeight : photoBoxExpandedHeight,
-      duration: 220,
-      useNativeDriver: false,
-    }).start();
-  }, [isTextInputFocused, photoBoxCompactHeight, photoBoxExpandedHeight, photoBoxHeight]);
 
   useEffect(() => {
     async function fetchUserId() {
@@ -143,6 +130,26 @@ function CapturePage() {
       }
     }
     fetchUserId();
+  }, []);
+
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+
+    const showSub = Keyboard.addListener(showEvent, (e) => {
+      setKeyboardHeight(e.endCoordinates.height);
+      setTimeout(() => {
+        scrollViewRef.current?.scrollToEnd({ animated: true });
+      }, 50);
+    });
+    const hideSub = Keyboard.addListener(hideEvent, () => {
+      setKeyboardHeight(0);
+    });
+
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
   }, []);
 
   const warmupLocationSignal = async () => {
@@ -404,20 +411,20 @@ function CapturePage() {
             >
               ← 취소
             </TextButton>
-            <Text style={styles.headerTitle}>오늘 한 컷</Text>
+            <Text style={styles.headerTitle}>오늘의 샷</Text>
             <View style={{ width: 52 }} />
           </View>
 
           <ScrollView
-            contentContainerStyle={styles.content}
+            ref={scrollViewRef}
+            contentContainerStyle={[styles.content, { paddingBottom: Math.max(104, keyboardHeight + 20) }]}
             keyboardShouldPersistTaps="handled"
             keyboardDismissMode="on-drag"
           >
-            <Animated.View
+            <View
               style={[
                 styles.photoBox,
                 imageUri != null && styles.photoBoxFilled,
-                { height: photoBoxHeight },
               ]}
             >
               <TouchableOpacity
@@ -435,7 +442,7 @@ function CapturePage() {
                   </View>
                 )}
               </TouchableOpacity>
-            </Animated.View>
+            </View>
 
             {isWorking && (
               <View style={styles.statusRow}>
@@ -475,8 +482,6 @@ function CapturePage() {
                 placeholder="장소명 (자동 입력 또는 직접 입력)"
                 disabled={isWorking}
                 returnKeyType="done"
-                onFocus={() => setIsTextInputFocused(true)}
-                onBlur={() => setIsTextInputFocused(false)}
                 onSubmitEditing={Keyboard.dismiss}
               />
             </View>
@@ -489,12 +494,12 @@ function CapturePage() {
                 placeholder="오늘 이 장소에 대한 한 줄 기록"
                 disabled={isWorking}
                 returnKeyType="default"
-                onFocus={() => setIsTextInputFocused(true)}
-                onBlur={() => setIsTextInputFocused(false)}
                 textAreaStyle={styles.textArea}
               />
             </View>
+          </ScrollView>
 
+          <View style={styles.bottomArea}>
             <Button
               type="primary"
               style="fill"
@@ -506,11 +511,9 @@ function CapturePage() {
               viewStyle={styles.saveButton}
               containerStyle={styles.saveButtonContainer}
             >
-              오늘 한 컷 저장하기
+              오늘의 샷 저장하기
             </Button>
-
-            <View style={styles.keyboardSpacer} />
-          </ScrollView>
+          </View>
         </View>
       </TouchableWithoutFeedback>
     </View>
@@ -538,14 +541,12 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 16,
-    paddingBottom: 40,
+    paddingBottom: 104,
     gap: 16,
-  },
-  keyboardSpacer: {
-    height: 220,
   },
   photoBox: {
     width: '100%',
+    aspectRatio: 1.4,
     backgroundColor: colors.grey200,
     borderRadius: 14,
     overflow: 'hidden',
@@ -605,8 +606,18 @@ const styles = StyleSheet.create({
   textArea: {
     height: 90,
   },
+  bottomArea: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: colors.grey50,
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    paddingBottom: 16,
+  },
   saveButton: {
-    marginTop: 4,
+    width: '100%',
   },
   retryLocationButtonContainer: {
     borderRadius: 10,

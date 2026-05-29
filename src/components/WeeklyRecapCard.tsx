@@ -107,13 +107,13 @@ export function WeeklyRecapCard({
         <Text style={styles.headerStreak}>{streak}일 연속 기록</Text>
       </View>
 
-          {isLoading ? (
-            <View style={styles.skeletonBox}>
-              <SkeletonBlock height={200} style={styles.skeletonPhoto} />
-              <SkeletonBlock height={64} style={styles.skeletonStats} />
-            </View>
-          ) : (
-            <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
+      {isLoading ? (
+        <View style={styles.skeletonBox}>
+          <SkeletonBlock height={200} style={styles.skeletonPhoto} />
+          <SkeletonBlock height={64} style={styles.skeletonStats} />
+        </View>
+      ) : (
+        <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
               {representativePhotos.length > 0 ? (
                 <View style={styles.photoSection}>
                   <Text style={styles.sectionTitle}>
@@ -194,19 +194,19 @@ export function WeeklyRecapCard({
             </ScrollView>
           )}
 
-          <View style={styles.actions}>
-            <Button
-              type="dark"
-              style="weak"
-              size="medium"
-              display="full"
-              onPress={onClose}
-              viewStyle={styles.actionButton}
-              containerStyle={styles.actionButtonContainer}
-            >
-              닫기
-            </Button>
-          </View>
+      <View style={styles.actions}>
+        <Button
+          type="dark"
+          style="weak"
+          size="medium"
+          display="full"
+          onPress={onClose}
+          viewStyle={styles.actionButton}
+          containerStyle={styles.actionButtonContainer}
+        >
+          닫기
+        </Button>
+      </View>
     </BottomSheetModal>
   );
 }

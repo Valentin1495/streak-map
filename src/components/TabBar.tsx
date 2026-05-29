@@ -12,9 +12,9 @@ interface TabItem {
 }
 
 const TABS: TabItem[] = [
-  { key: 'home', icon: '🔥', label: '홈' },
+  { key: 'home', icon: '🏠', label: '홈' },
   { key: 'record', icon: '🗺', label: '기록' },
-  { key: 'settings', icon: '⚙️', label: '설정' },
+  { key: 'settings', icon: '🎁', label: '혜택' },
 ];
 
 interface TabBarProps {
