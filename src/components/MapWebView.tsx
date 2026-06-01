@@ -3,6 +3,7 @@ import { View, StyleSheet } from 'react-native';
 import WebView, { WebViewMessageEvent } from '@granite-js/native/react-native-webview';
 import { colors } from '@toss/tds-react-native';
 import { Photo, getPhotoUrl } from '../lib/supabase';
+import { brandColors } from '../lib/theme';
 
 const MAP_URL = 'https://streakmap.vercel.app/';
 
@@ -39,12 +40,15 @@ export function MapWebView({ photos, onPinTap, showPath = false }: MapWebViewPro
     // 좌표를 소수점 4자리(약 11m) 단위로 그룹화하여 겹치는 마커 처리
     const pinGroups = photos
       .filter((p) => p.lat != null && p.lng != null)
-      .reduce((acc, p) => {
-        const key = `${p.lat!.toFixed(4)},${p.lng!.toFixed(4)}`;
-        if (!acc[key]) acc[key] = [];
-        acc[key].push(p);
-        return acc;
-      }, {} as Record<string, Photo[]>);
+      .reduce(
+        (acc, p) => {
+          const key = `${p.lat!.toFixed(4)},${p.lng!.toFixed(4)}`;
+          if (!acc[key]) acc[key] = [];
+          acc[key].push(p);
+          return acc;
+        },
+        {} as Record<string, Photo[]>
+      );
 
     const pins: PinData[] = Object.values(pinGroups).map((group) => {
       // 그룹 내에서 대표 사진을 우선으로 사용 (없으면 가장 최근 사진)
@@ -94,7 +98,7 @@ export function MapWebView({ photos, onPinTap, showPath = false }: MapWebViewPro
                 icon: {
                   content:
                     '<div style="position:relative;width:44px;height:44px;">' +
-                    '<button style="width:44px;height:44px;border:3px solid ${colors.blue500};border-radius:22px;overflow:hidden;padding:0;background:${colors.white};box-shadow:0 4px 10px rgba(0,0,0,.22);">' +
+                    '<button style="width:44px;height:44px;border:3px solid ${brandColors.primary};border-radius:22px;overflow:hidden;padding:0;background:${colors.white};box-shadow:0 4px 10px rgba(0,0,0,.22);">' +
                     '<img src="' + pin.imageUrl + '" style="width:100%;height:100%;object-fit:cover;display:block;" />' +
                     '</button>' +
                     (pin.count > 1 ? '<div style="position:absolute;top:-4px;right:-4px;background:${colors.red500};color:white;font-size:11px;font-weight:bold;padding:2px 6px;border-radius:10px;box-shadow:0 2px 4px rgba(0,0,0,.2);">' + '+' + (pin.count - 1) + '</div>' : '') +
@@ -164,7 +168,7 @@ export function MapWebView({ photos, onPinTap, showPath = false }: MapWebViewPro
         window.__streakPath = new window.naver.maps.Polyline({
           path: coords,
           map: window.map,
-          strokeColor: '${colors.blue500}',
+          strokeColor: '${brandColors.primary}',
           strokeOpacity: 0.55,
           strokeWeight: 3,
           strokeStyle: 'solid',
@@ -196,9 +200,7 @@ export function MapWebView({ photos, onPinTap, showPath = false }: MapWebViewPro
       if (payload.type === 'pinTap' && payload.pinId != null) {
         const tapped = photos.find((p) => p.id === payload.pinId);
         if (tapped != null) {
-          const group = payload.photoIds
-            ? photos.filter((p) => payload.photoIds!.includes(p.id))
-            : [tapped];
+          const group = payload.photoIds ? photos.filter((p) => payload.photoIds!.includes(p.id)) : [tapped];
           onPinTap?.(tapped, group);
         }
       } else if (payload.type === 'error') {

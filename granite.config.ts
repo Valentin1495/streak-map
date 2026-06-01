@@ -8,10 +8,13 @@ export default defineConfig({
     appsInToss({
       brand: {
         displayName: '오늘의 샷',
-        primaryColor: '#0064FF',
-        icon: '',
+        primaryColor: '#006D77',
+        icon: 'https://static.toss.im/appsintoss/25061/d2d5cd56-249e-4722-8c3a-1a006e9014f5.png',
       },
-      permissions: [{name: 'geolocation', access: 'access'}, {name: 'camera', access: 'access'}],
+      permissions: [
+        { name: 'geolocation', access: 'access' },
+        { name: 'camera', access: 'access' },
+      ],
     }),
   ],
 });

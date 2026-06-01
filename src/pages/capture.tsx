@@ -12,7 +12,7 @@ import {
   View,
 } from 'react-native';
 import { createRoute } from '@granite-js/react-native';
-import { Button, TextArea, TextButton, TextField, colors } from '@toss/tds-react-native';
+import { Button, TDSProvider, TextArea, TextButton, TextField, colors } from '@toss/tds-react-native';
 import {
   getAnonymousKey,
   getCurrentLocation,
@@ -23,10 +23,12 @@ import {
   Accuracy,
   Location,
 } from '@apps-in-toss/framework';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { insertPhoto } from '../lib/supabase';
 import { reverseGeocode } from '../lib/geocode';
 import { compressImage } from '../lib/compress';
 import { setPendingCapture } from '../lib/captureResult';
+import { brandColors } from '../lib/theme';
 
 export const Route = createRoute('/capture', {
   component: CapturePage,
@@ -37,8 +39,7 @@ type Step = 'idle' | 'shooting' | 'locating' | 'geocoding' | 'compressing' | 'up
 const LOCATION_ACCURACY_FALLBACKS = [Accuracy.Balanced, Accuracy.Low, Accuracy.Lowest];
 const LOCATION_RETRY_DELAY_MS = 700;
 const LOCATION_WARMUP_TIMEOUT_MS = 1800;
-const LOCATION_ENVIRONMENT_ERROR_MESSAGE =
-  '현재 실행 환경에서 위치를 가져오지 못했어요. 장소명을 직접 입력해 주세요.';
+const LOCATION_ENVIRONMENT_ERROR_MESSAGE = '현재 실행 환경에서 위치를 가져오지 못했어요. 장소명을 직접 입력해 주세요.';
 
 const LOCATION_BRIDGE_ERROR_CODES = new Set([
   'METHOD_NOT_FOUND',
@@ -110,6 +111,7 @@ function isBedrockLocationDenied(error: unknown): boolean {
 
 function CapturePage() {
   const navigation = Route.useNavigation();
+  const insets = useSafeAreaInsets();
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [lat, setLat] = useState<number | null>(null);
   const [lng, setLng] = useState<number | null>(null);
@@ -261,7 +263,9 @@ function CapturePage() {
         return;
       }
       if (isBedrockLocationDenied(e)) {
-        setError('?꾩튂 ?쒕퉬?ㅺ? 鍮꾪솢?깊솕?섎릺?덇굅?? ?꾩옱 ?꾩튂瑜?李얠? 紐삵븯?고빀?덈떎. ?ㅼ젙?먯꽌 ?꾩튂 ?쒕퉬?ㅻ? ?뺤씤??二쇱꽭??');
+        setError(
+          '?꾩튂 ?쒕퉬?ㅺ? 鍮꾪솢?깊솕?섎릺?덇굅?? ?꾩옱 ?꾩튂瑜?李얠? 紐삵븯?고빀?덈떎. ?ㅼ젙?먯꽌 ?꾩튂 ?쒕퉬?ㅻ? ?뺤씤??二쇱꽭??'
+        );
         return;
       }
       if (e instanceof GetCurrentLocationPermissionError) {
@@ -352,8 +356,14 @@ function CapturePage() {
   };
 
   const save = async () => {
+    const trimmedPlaceName = placeName.trim();
+
     if (imageUri == null) {
       setError('먼저 사진을 찍어 주세요.');
+      return;
+    }
+    if (trimmedPlaceName.length === 0) {
+      setError('장소명을 입력해 주세요.');
       return;
     }
     if (userIdRef.current == null) {
@@ -370,13 +380,13 @@ function CapturePage() {
         imageBase64: imageUri,
         lat,
         lng,
-        placeName: placeName.trim() || null,
+        placeName: trimmedPlaceName,
         memo: memo.trim() || null,
       });
       setStep('done');
       setPendingCapture({
         photoUri: imageUri,
-        placeName: placeName.trim() || null,
+        placeName: trimmedPlaceName,
       });
       navigation.navigate('/');
     } catch (e) {
@@ -387,6 +397,9 @@ function CapturePage() {
   };
 
   const isWorking = step !== 'idle' && step !== 'done';
+  const canSave = !isWorking && imageUri != null && placeName.trim().length > 0;
+  const bottomActionOffset = Math.max(insets.bottom, 12);
+  const contentBottomPadding = Math.max(120 + bottomActionOffset, keyboardHeight + 20);
   const stepLabel: Record<Step, string> = {
     idle: '',
     shooting: '카메라 열기...',
@@ -406,7 +419,7 @@ function CapturePage() {
               typography="t5"
               variant="clear"
               fontWeight="semibold"
-              onPress={() => navigation.navigate('/')}
+              onPress={() => navigation.goBack()}
               disabled={isWorking}
             >
               ← 취소
@@ -417,27 +430,17 @@ function CapturePage() {
 
           <ScrollView
             ref={scrollViewRef}
-            contentContainerStyle={[styles.content, { paddingBottom: Math.max(104, keyboardHeight + 20) }]}
+            contentContainerStyle={[styles.content, { paddingBottom: contentBottomPadding }]}
             keyboardShouldPersistTaps="handled"
             keyboardDismissMode="on-drag"
           >
-            <View
-              style={[
-                styles.photoBox,
-                imageUri != null && styles.photoBoxFilled,
-              ]}
-            >
-              <TouchableOpacity
-                style={styles.photoButton}
-                onPress={shoot}
-                disabled={isWorking}
-                activeOpacity={0.8}
-              >
+            <View style={[styles.photoBox, imageUri != null && styles.photoBoxFilled]}>
+              <TouchableOpacity style={styles.photoButton} onPress={shoot} disabled={isWorking} activeOpacity={0.8}>
                 {imageUri != null ? (
                   <Image source={{ uri: imageUri }} style={styles.photo} resizeMode="cover" />
                 ) : (
                   <View style={styles.photoPlaceholder}>
-                    <Text style={styles.photoIcon}>📷</Text>
+                    <Text style={styles.photoIcon}>📸</Text>
                     <Text style={styles.photoHint}>탭해서 사진 찍기</Text>
                   </View>
                 )}
@@ -446,7 +449,7 @@ function CapturePage() {
 
             {isWorking && (
               <View style={styles.statusRow}>
-                <ActivityIndicator size="small" color={colors.blue500} />
+                <ActivityIndicator size="small" color={brandColors.primary} />
                 <Text style={styles.statusText}>{stepLabel[step]}</Text>
               </View>
             )}
@@ -471,8 +474,8 @@ function CapturePage() {
               <Text style={styles.fieldLabel}>장소</Text>
               {imageUri != null && (lat == null || lng == null) && (
                 <Text style={styles.fieldHint}>
-                  iOS/Android 기기 위치 서비스를 켜고, iOS는 토스의 정확한 위치를 허용해 주세요.
-                  위치가 없으면 지도 핀 없이 기록만 저장돼요.
+                  iOS/Android 기기 위치 서비스를 켜고, iOS는 토스의 정확한 위치를 허용해 주세요. 위치가 없으면 지도 핀
+                  없이 기록만 저장돼요.
                 </Text>
               )}
               <TextField
@@ -499,20 +502,22 @@ function CapturePage() {
             </View>
           </ScrollView>
 
-          <View style={styles.bottomArea}>
-            <Button
-              type="primary"
-              style="fill"
-              size="large"
-              display="full"
-              onPress={save}
-              disabled={isWorking || imageUri == null}
-              loading={step === 'uploading'}
-              viewStyle={styles.saveButton}
-              containerStyle={styles.saveButtonContainer}
-            >
-              오늘의 샷 저장하기
-            </Button>
+          <View style={[styles.bottomArea, { bottom: bottomActionOffset }]}>
+            <TDSProvider token={{ color: { primary: brandColors.primary } }}>
+              <Button
+                type="primary"
+                style="fill"
+                size="large"
+                display="full"
+                onPress={save}
+                disabled={!canSave}
+                loading={step === 'uploading'}
+                viewStyle={styles.saveButton}
+                containerStyle={styles.saveButtonContainer}
+              >
+                저장하기
+              </Button>
+            </TDSProvider>
           </View>
         </View>
       </TouchableWithoutFeedback>
@@ -581,7 +586,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   statusText: {
-    color: colors.blue500,
+    color: brandColors.primary,
     fontSize: 13,
     fontWeight: '600',
   },
@@ -608,7 +613,6 @@ const styles = StyleSheet.create({
   },
   bottomArea: {
     position: 'absolute',
-    bottom: 0,
     left: 0,
     right: 0,
     backgroundColor: colors.grey50,

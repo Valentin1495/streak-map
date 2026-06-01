@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { colors } from '@toss/tds-react-native';
+import { brandColors } from '../lib/theme';
 
 interface StreakBannerProps {
   streak: number;
@@ -13,12 +14,8 @@ export function StreakBanner({ streak, hasTodayRecord }: StreakBannerProps) {
       <View style={styles.left}>
         <Text style={styles.flame}>{hasTodayRecord ? '🔥' : '⭕'}</Text>
         <View>
-          <Text style={styles.count}>
-            {streak > 0 ? `${streak}일 연속 기록 중` : '기록을 시작해보세요'}
-          </Text>
-          {!hasTodayRecord && streak > 0 && (
-            <Text style={styles.warning}>오늘 기록하지 않으면 스트릭이 끊겨요</Text>
-          )}
+          <Text style={styles.count}>{streak > 0 ? `${streak}일 연속 기록 중` : '기록을 시작해보세요'}</Text>
+          {!hasTodayRecord && streak > 0 && <Text style={styles.warning}>오늘 기록하지 않으면 스트릭이 끊겨요</Text>}
         </View>
       </View>
       {hasTodayRecord && (
@@ -42,7 +39,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   active: {
-    backgroundColor: colors.blue50,
+    backgroundColor: brandColors.primaryWeak,
   },
   inactive: {
     backgroundColor: colors.orange50,
@@ -66,7 +63,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   badge: {
-    backgroundColor: colors.blue500,
+    backgroundColor: brandColors.primary,
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 99,

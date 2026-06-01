@@ -2,8 +2,9 @@ import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '@toss/tds-react-native';
+import { brandColors } from '../lib/theme';
 
-export type TabKey = 'home' | 'record' | 'settings';
+export type TabKey = 'home' | 'record' | 'benefits';
 
 interface TabItem {
   key: TabKey;
@@ -14,7 +15,7 @@ interface TabItem {
 const TABS: TabItem[] = [
   { key: 'home', icon: '🏠', label: '홈' },
   { key: 'record', icon: '🗺', label: '기록' },
-  { key: 'settings', icon: '🎁', label: '혜택' },
+  { key: 'benefits', icon: '🎁', label: '혜택' },
 ];
 
 interface TabBarProps {
@@ -29,12 +30,7 @@ export function TabBar({ activeTab, onTabPress }: TabBarProps) {
       {TABS.map((tab) => {
         const isActive = activeTab === tab.key;
         return (
-          <TouchableOpacity
-            key={tab.key}
-            style={styles.tab}
-            onPress={() => onTabPress(tab.key)}
-            activeOpacity={0.7}
-          >
+          <TouchableOpacity key={tab.key} style={styles.tab} onPress={() => onTabPress(tab.key)} activeOpacity={0.7}>
             <Text style={styles.icon}>{tab.icon}</Text>
             <Text style={[styles.label, isActive && styles.labelActive]}>{tab.label}</Text>
             {isActive && <View style={styles.indicator} />}
@@ -72,7 +68,7 @@ const styles = StyleSheet.create({
     color: colors.grey500,
   },
   labelActive: {
-    color: colors.blue500,
+    color: brandColors.primary,
   },
   indicator: {
     position: 'absolute',
@@ -80,6 +76,6 @@ const styles = StyleSheet.create({
     width: 28,
     height: 3,
     borderRadius: 2,
-    backgroundColor: colors.blue500,
+    backgroundColor: brandColors.primary,
   },
 });

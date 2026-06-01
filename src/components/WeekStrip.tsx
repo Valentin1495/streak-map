@@ -1,6 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { colors } from '@toss/tds-react-native';
+import { brandColors } from '../lib/theme';
 import { Photo } from '../lib/supabase';
 
 const DAY_LABELS = ['일', '월', '화', '수', '목', '금', '토'];
@@ -56,9 +57,7 @@ export function WeekStrip({ photos }: WeekStripProps) {
               day.isToday && !day.hasPhoto && styles.circleToday,
             ]}
           >
-            <Text style={[styles.dayNum, day.hasPhoto && styles.dayNumActive]}>
-              {day.dayNum}
-            </Text>
+            <Text style={[styles.dayNum, day.hasPhoto && styles.dayNumActive]}>{day.dayNum}</Text>
           </View>
           {day.isToday && <View style={styles.todayDot} />}
         </View>
@@ -92,7 +91,7 @@ const styles = StyleSheet.create({
     color: colors.grey500,
   },
   dayLabelToday: {
-    color: colors.blue500,
+    color: brandColors.primary,
   },
   circle: {
     width: 32,
@@ -103,12 +102,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   circleActive: {
-    backgroundColor: colors.blue500,
+    backgroundColor: brandColors.primary,
   },
   circleToday: {
     borderWidth: 2,
-    borderColor: colors.blue500,
-    backgroundColor: colors.blue50,
+    borderColor: brandColors.primary,
+    backgroundColor: brandColors.primaryWeak,
   },
   dayNum: {
     fontSize: 13,
@@ -122,7 +121,7 @@ const styles = StyleSheet.create({
     width: 4,
     height: 4,
     borderRadius: 2,
-    backgroundColor: colors.blue500,
+    backgroundColor: brandColors.primary,
     marginTop: -4,
   },
 });

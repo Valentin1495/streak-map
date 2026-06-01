@@ -1,17 +1,9 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import {
-  ActivityIndicator,
-  Alert,
-  Animated,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { ActivityIndicator, Alert, Animated, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { createRoute } from '@granite-js/react-native';
 import { getAnonymousKey, loadFullScreenAd, showFullScreenAd } from '@apps-in-toss/framework';
-import { Button, colors } from '@toss/tds-react-native';
+import { Button, TDSProvider, colors } from '@toss/tds-react-native';
 import {
   deletePhoto,
   getDailyPhotoLimit,
@@ -26,17 +18,15 @@ import {
 } from '../lib/supabase';
 import { calculateStreak, hasTodayRecord } from '../lib/streak';
 import { consumePendingCapture } from '../lib/captureResult';
-import {
-  checkAndAwardMilestone,
-  RecapMilestone,
-} from '../lib/milestones';
+import { checkAndAwardMilestone, RecapMilestone } from '../lib/milestones';
 import { track } from '../lib/analytics';
 import { TabBar, TabKey } from '../components/TabBar';
 import { TodayPhoto } from '../components/TodayPhoto';
 import { RecordView } from '../components/RecordView';
-import { RewardAdStatus, SettingsView } from '../components/SettingsView';
+import { RewardAdStatus, BenefitsView } from '../components/BenefitsView';
 import { StreakAchievedModal } from '../components/StreakAchievedModal';
 import { WeeklyRecapCard } from '../components/WeeklyRecapCard';
+import { brandColors } from '../lib/theme';
 
 export const Route = createRoute('/', {
   component: HomePage,
@@ -45,11 +35,7 @@ export const Route = createRoute('/', {
 const REWARDED_AD_GROUP_ID = 'ait-ad-test-rewarded-id';
 
 function getEffectiveDailyLimit(info: DailyLimitInfo): number {
-  return (
-    MAX_DAILY_PHOTOS +
-    (info.hasAdReward ? 1 : 0) +
-    (info.hasShareReward ? 1 : 0)
-  );
+  return MAX_DAILY_PHOTOS + (info.hasAdReward ? 1 : 0) + (info.hasShareReward ? 1 : 0);
 }
 
 interface ModalState {
@@ -92,9 +78,10 @@ function OnboardingView({ onStart }: { onStart: () => void }) {
             gap: 12,
           }}
         >
-          <Text style={styles.onboardingTitle}>오늘 하루를{'\n'}한 장으로</Text>
+          <Text style={styles.onboardingTitle}>오늘의 인생샷을{'\n'}남겨보세요</Text>
           <Text style={styles.onboardingSubtitle}>
-            매일 한 장씩 찍으면{'\n'}내 삶의 지도가 완성돼요
+            사진과 장소를 기록하여{'\n'}
+            나만의 추억 지도를 완성해요
           </Text>
         </Animated.View>
       </View>
@@ -120,7 +107,7 @@ function HomeView({
   dailyLimitInfo,
   slotAdStatus,
   onCapture,
-  onGoToSettings,
+  onGoToBenefits,
   onSelectBestPhoto,
   onDeletePhoto,
   settingBestPhotoId,
@@ -132,7 +119,7 @@ function HomeView({
   dailyLimitInfo: DailyLimitInfo;
   slotAdStatus: RewardAdStatus;
   onCapture: () => void;
-  onGoToSettings: () => void;
+  onGoToBenefits: () => void;
   onSelectBestPhoto: (photo: Photo) => void;
   onDeletePhoto: (photo: Photo) => void;
   settingBestPhotoId: string | null;
@@ -140,13 +127,13 @@ function HomeView({
 }) {
   const effectiveDailyLimit = getEffectiveDailyLimit(dailyLimitInfo);
   const reachedDailyLimit = todayPhotoCount >= effectiveDailyLimit;
-  
+
   let ctaLabel = '';
   let ctaDisabled = false;
   let ctaAction = onCapture;
 
   if (!todayDone) {
-    ctaLabel = '오늘 기록하기';
+    ctaLabel = '기록하기';
   } else if (!reachedDailyLimit) {
     ctaLabel = '한 장 더 남기기';
   } else if (effectiveDailyLimit === MAX_REWARDED_DAILY_PHOTOS) {
@@ -167,9 +154,10 @@ function HomeView({
     }
   } else if (!dailyLimitInfo.hasShareReward) {
     ctaLabel = '친구 초대하고 1장 더 남기기 (하루 1회)';
-    ctaAction = onGoToSettings;
+    ctaAction = onGoToBenefits;
   }
 
+  const isBenefitsCta = todayDone && ctaAction === onGoToBenefits;
   return (
     <ScrollView
       style={styles.homeScroll}
@@ -190,20 +178,22 @@ function HomeView({
             {`광고·초대로 하루 최대 ${MAX_REWARDED_DAILY_PHOTOS}장까지 추가할 수 있어요`}
           </Text>
         )}
-        <Button
-          type={todayDone && ctaAction === onGoToSettings ? 'primary' : todayDone ? 'dark' : 'primary'}
-          style={todayDone && ctaAction === onGoToSettings ? 'weak' : 'fill'}
-          size="large"
-          display="full"
-          onPress={ctaAction}
-          disabled={ctaDisabled}
-          loading={slotAdStatus === 'showing'}
-          leftAccessory={<Text style={styles.ctaIcon}>{todayDone && ctaAction === onGoToSettings ? '🤝' : todayDone ? '✓' : '📷'}</Text>}
-          viewStyle={styles.ctaButton}
-          containerStyle={styles.ctaButtonContainer}
-        >
-          {ctaLabel}
-        </Button>
+        <TDSProvider token={{ color: { primary: brandColors.primary } }}>
+          <Button
+            type="primary"
+            style={isBenefitsCta ? 'weak' : 'fill'}
+            size="large"
+            display="full"
+            onPress={ctaAction}
+            disabled={ctaDisabled}
+            loading={slotAdStatus === 'showing'}
+            leftAccessory={<Text style={styles.ctaIcon}>{isBenefitsCta ? '🤝' : todayDone ? '✓' : '📷'}</Text>}
+            viewStyle={styles.ctaButton}
+            containerStyle={styles.ctaButtonContainer}
+          >
+            {ctaLabel}
+          </Button>
+        </TDSProvider>
       </View>
     </ScrollView>
   );
@@ -216,9 +206,13 @@ function HomePage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabKey>('home');
-  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(true);
   const [recapAdStatus, setRecapAdStatus] = useState<RewardAdStatus>('loading');
-  const [dailyLimitInfo, setDailyLimitInfo] = useState<DailyLimitInfo>({ limit: MAX_DAILY_PHOTOS, hasAdReward: false, hasShareReward: false });
+  const [dailyLimitInfo, setDailyLimitInfo] = useState<DailyLimitInfo>({
+    limit: MAX_DAILY_PHOTOS,
+    hasAdReward: false,
+    hasShareReward: false,
+  });
   const [slotAdStatus, setSlotAdStatus] = useState<RewardAdStatus>('loading');
   const [settingBestPhotoId, setSettingBestPhotoId] = useState<string | null>(null);
   const [deletingPhotoId, setDeletingPhotoId] = useState<string | null>(null);
@@ -385,27 +379,24 @@ function HomePage() {
     });
   }, []);
 
-  const checkPendingCapture = useCallback(
-    async (freshPhotos: Photo[], uid: string) => {
-      const result = consumePendingCapture();
-      if (result == null) return;
-      const newStreak = calculateStreak(freshPhotos);
+  const checkPendingCapture = useCallback(async (freshPhotos: Photo[], uid: string) => {
+    const result = consumePendingCapture();
+    if (result == null) return;
+    const newStreak = calculateStreak(freshPhotos);
 
-      await checkAndAwardMilestone(uid, newStreak);
+    await checkAndAwardMilestone(uid, newStreak);
 
-      setModal({
-        visible: true,
-        streak: newStreak,
-        photoUri: result.photoUri,
-        placeName: result.placeName,
-      });
-      track('streak_achieved', {
-        streak_count: newStreak,
-        is_milestone: [3, 7, 14, 30, 100].includes(newStreak),
-      });
-    },
-    []
-  );
+    setModal({
+      visible: true,
+      streak: newStreak,
+      photoUri: result.photoUri,
+      placeName: result.placeName,
+    });
+    track('streak_achieved', {
+      streak_count: newStreak,
+      is_milestone: [3, 7, 14, 30, 100].includes(newStreak),
+    });
+  }, []);
 
   useEffect(() => {
     async function init() {
@@ -422,9 +413,6 @@ function HomePage() {
         const dataPromise = fetchPhotos(uid);
         const [data] = await Promise.all([dataPromise, refreshDailyPhotoLimit(uid)]);
 
-        if (data != null && data.length === 0) {
-          setShowOnboarding(true);
-        }
         if (data != null) {
           track('home_viewed', {
             streak_count: calculateStreak(data),
@@ -439,25 +427,17 @@ function HomePage() {
       }
     }
     init();
-  }, [
-    fetchPhotos,
-    refreshDailyPhotoLimit,
-  ]);
+  }, [fetchPhotos, refreshDailyPhotoLimit]);
 
   useEffect(() => {
     const uid = userIdRef.current;
-    if (uid == null || activeTab !== 'settings') return;
+    if (uid == null || activeTab !== 'benefits') return;
 
     void refreshDailyPhotoLimit(uid);
 
-    if (
-      !isRecapAdLoadedRef.current &&
-      recapAdStatus !== 'unsupported' &&
-      recapAdStatus !== 'showing'
-    ) {
+    if (!isRecapAdLoadedRef.current && recapAdStatus !== 'unsupported' && recapAdStatus !== 'showing') {
       loadRecapAd();
     }
-
   }, [activeTab, recapAdStatus, loadRecapAd, refreshDailyPhotoLimit]);
 
   useEffect(() => {
@@ -488,13 +468,7 @@ function HomePage() {
         })
         .catch(console.error);
     }
-  }, [
-    activeTab,
-    dailyLimitInfo,
-    todayPhotos.length,
-    slotAdStatus,
-    loadSlotAd,
-  ]);
+  }, [activeTab, dailyLimitInfo, todayPhotos.length, slotAdStatus, loadSlotAd]);
 
   useEffect(() => {
     return () => {
@@ -517,12 +491,7 @@ function HomePage() {
       }
     });
     return () => unsubscribe?.();
-  }, [
-    navigation,
-    fetchPhotos,
-    refreshDailyPhotoLimit,
-    checkPendingCapture,
-  ]);
+  }, [navigation, fetchPhotos, refreshDailyPhotoLimit, checkPendingCapture]);
 
   const handleCapture = async () => {
     const uid = userIdRef.current;
@@ -602,9 +571,9 @@ function HomePage() {
 
   const handleShowRecap = () => {
     setModal((prev) => ({ ...prev, visible: false }));
-    openRecap(([7, 14, 30] as RecapMilestone[]).includes(modal.streak as RecapMilestone)
-      ? (modal.streak as RecapMilestone)
-      : 7);
+    openRecap(
+      ([7, 14, 30] as RecapMilestone[]).includes(modal.streak as RecapMilestone) ? (modal.streak as RecapMilestone) : 7
+    );
   };
 
   const handleRecapPress = (milestone: RecapMilestone) => {
@@ -665,7 +634,7 @@ function HomePage() {
   if (isLoading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color={colors.blue500} />
+        <ActivityIndicator size="large" color={brandColors.primary} />
       </View>
     );
   }
@@ -691,22 +660,16 @@ function HomePage() {
             dailyLimitInfo={dailyLimitInfo}
             slotAdStatus={slotAdStatus}
             onCapture={handleCapture}
-            onGoToSettings={() => setActiveTab('settings')}
+            onGoToBenefits={() => setActiveTab('benefits')}
             onSelectBestPhoto={handleSelectBestPhoto}
             onDeletePhoto={handleDeletePhoto}
             settingBestPhotoId={settingBestPhotoId}
             deletingPhotoId={deletingPhotoId}
           />
         )}
-        {activeTab === 'record' && (
-          <RecordView
-            photos={photos}
-            onPhotosChange={setPhotos}
-            streak={streak}
-          />
-        )}
-        {activeTab === 'settings' && (
-          <SettingsView
+        {activeTab === 'record' && <RecordView photos={photos} onPhotosChange={setPhotos} streak={streak} />}
+        {activeTab === 'benefits' && (
+          <BenefitsView
             userId={userId}
             streak={streak}
             recapAdStatus={recapAdStatus}
@@ -806,18 +769,17 @@ const styles = StyleSheet.create({
   },
   onboardingContainer: {
     flex: 1,
-    backgroundColor: colors.blue500,
+    backgroundColor: brandColors.primary,
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingTop: 40,
+    justifyContent: 'flex-start',
+    paddingTop: 96,
     paddingBottom: 40,
     paddingHorizontal: 32,
   },
   onboardingContent: {
-    flex: 1,
     alignItems: 'center',
-    justifyContent: 'center',
     gap: 20,
+    marginBottom: 36,
   },
   onboardingIcon: {
     fontSize: 72,
@@ -838,6 +800,7 @@ const styles = StyleSheet.create({
   },
   startButton: {
     width: '100%',
+    alignSelf: 'stretch',
   },
   startButtonContainer: {
     borderRadius: 16,

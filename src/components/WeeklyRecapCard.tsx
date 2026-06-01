@@ -1,16 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
-import {
-  Animated,
-  Dimensions,
-  Image,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { Animated, Dimensions, Image, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Badge, Button, colors } from '@toss/tds-react-native';
 import { getPhotoUrl } from '../lib/supabase';
 import { loadRecapData, RecapMilestone, WeeklyRecapData } from '../lib/milestones';
+import { brandColors } from '../lib/theme';
 import { BottomSheetModal } from './BottomSheetModal';
 
 interface WeeklyRecapCardProps {
@@ -36,25 +29,17 @@ function SkeletonBlock({ height, style }: { height: number; style?: object }) {
   }, [pulse]);
 
   return (
-    <Animated.View
-      style={[{ height, borderRadius: 16, backgroundColor: colors.grey100, opacity: pulse }, style]}
-    />
+    <Animated.View style={[{ height, borderRadius: 16, backgroundColor: colors.grey100, opacity: pulse }, style]} />
   );
 }
 
 const RECAP_TITLES: Record<RecapMilestone, string> = {
-  7: '주간 리캡',
-  14: '14일 장소 요약',
-  30: '월간 리캡',
+  7: '주간 요약',
+  14: '2주 요약',
+  30: '월간 요약',
 };
 
-export function WeeklyRecapCard({
-  visible,
-  userId,
-  streak,
-  milestone = 7,
-  onClose,
-}: WeeklyRecapCardProps) {
+export function WeeklyRecapCard({ visible, userId, streak, milestone = 7, onClose }: WeeklyRecapCardProps) {
   const [data, setData] = useState<WeeklyRecapData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -68,19 +53,22 @@ export function WeeklyRecapCard({
       .finally(() => setIsLoading(false));
   }, [milestone, userId, visible]);
 
-  const representativePhotos = data != null ? (() => {
-    const byDate = new Map<string, typeof data.photos>();
-    data.photos.forEach(p => {
-      const current = byDate.get(p.streak_date) ?? [];
-      current.push(p);
-      byDate.set(p.streak_date, current);
-    });
-    const reps = Array.from(byDate.values()).map(photos => 
-      photos.find(p => p.is_representative) ?? photos[0]
-    ).filter((p): p is NonNullable<typeof p> => p != null);
-    return reps.sort((a, b) => b.taken_at.localeCompare(a.taken_at));
-  })() : [];
-  
+  const representativePhotos =
+    data != null
+      ? (() => {
+          const byDate = new Map<string, typeof data.photos>();
+          data.photos.forEach((p) => {
+            const current = byDate.get(p.streak_date) ?? [];
+            current.push(p);
+            byDate.set(p.streak_date, current);
+          });
+          const reps = Array.from(byDate.values())
+            .map((photos) => photos.find((p) => p.is_representative) ?? photos[0])
+            .filter((p): p is NonNullable<typeof p> => p != null);
+          return reps.sort((a, b) => b.taken_at.localeCompare(a.taken_at));
+        })()
+      : [];
+
   const screenWidth = Dimensions.get('window').width;
   const singlePhotoWidth = screenWidth - 40;
   const multiplePhotoWidth = screenWidth * 0.72;
@@ -114,85 +102,81 @@ export function WeeklyRecapCard({
         </View>
       ) : (
         <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
-              {representativePhotos.length > 0 ? (
-                <View style={styles.photoSection}>
-                  <Text style={styles.sectionTitle}>
-                    {representativePhotos.length > 1 ? '이 기간의 대표 사진들' : '이 기간의 대표 사진'}
-                  </Text>
-                  <ScrollView 
-                    horizontal 
-                    showsHorizontalScrollIndicator={false} 
-                    style={styles.photoScrollView}
-                    contentContainerStyle={styles.photoScrollContent}
-                    snapToInterval={representativePhotos.length > 1 ? multiplePhotoWidth + 12 : undefined}
-                    decelerationRate="fast"
+          {representativePhotos.length > 0 ? (
+            <View style={styles.photoSection}>
+              <Text style={styles.sectionTitle}>
+                {representativePhotos.length > 1 ? '이 기간의 대표 사진들' : '이 기간의 대표 사진'}
+              </Text>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={styles.photoScrollView}
+                contentContainerStyle={styles.photoScrollContent}
+                snapToInterval={representativePhotos.length > 1 ? multiplePhotoWidth + 12 : undefined}
+                decelerationRate="fast"
+              >
+                {representativePhotos.map((photo) => (
+                  <View
+                    key={photo.id}
+                    style={[
+                      styles.photoFrame,
+                      { width: representativePhotos.length > 1 ? multiplePhotoWidth : singlePhotoWidth },
+                    ]}
                   >
-                    {representativePhotos.map((photo) => (
-                      <View 
-                        key={photo.id} 
-                        style={[
-                          styles.photoFrame, 
-                          { width: representativePhotos.length > 1 ? multiplePhotoWidth : singlePhotoWidth }
-                        ]}
-                      >
-                        <Image
-                          source={{ uri: getPhotoUrl(photo.storage_path) }}
-                          style={styles.photo}
-                          resizeMode="cover"
-                        />
-                        <View style={styles.photoOverlay}>
-                          <Text style={styles.photoDate}>{photo.streak_date}</Text>
-                        </View>
-                      </View>
-                    ))}
-                  </ScrollView>
-                </View>
-              ) : (
-                <View style={styles.emptyPhoto}>
-                  <Text style={styles.emptyPhotoText}>이 기간의 기록이 없어요</Text>
-                </View>
-              )}
-
-              {uniquePlaces.length > 0 && (
-                <View style={styles.placesRow}>
-                  {uniquePlaces.map((place) => (
-                    <Badge key={place} size="small" type="blue" badgeStyle="weak">
-                      {`📍 ${place}`}
-                    </Badge>
-                  ))}
-                </View>
-              )}
-
-              {placeCounts.length > 0 && (
-                <View style={styles.summaryBox}>
-                  <Text style={styles.summaryTitle}>장소 요약</Text>
-                  <Text style={styles.summaryText}>
-                    {placeCounts
-                      .slice(0, 3)
-                      .map(([place, count]) => `${place} ${count}회`)
-                      .join(' · ')}
-                  </Text>
-                </View>
-              )}
-
-              <View style={styles.statsRow}>
-                <View style={styles.statItem}>
-                  <Text style={styles.statValue}>{data?.photos.length ?? 0}개</Text>
-                  <Text style={styles.statLabel}>기록</Text>
-                </View>
-                <View style={styles.statDivider} />
-                <View style={styles.statItem}>
-                  <Text style={styles.statValue}>{placeCounts.length}곳</Text>
-                  <Text style={styles.statLabel}>방문 장소</Text>
-                </View>
-                <View style={styles.statDivider} />
-                <View style={styles.statItem}>
-                  <Text style={styles.statValue}>{streak}일</Text>
-                  <Text style={styles.statLabel}>연속 기록</Text>
-                </View>
-              </View>
-            </ScrollView>
+                    <Image source={{ uri: getPhotoUrl(photo.storage_path) }} style={styles.photo} resizeMode="cover" />
+                    <View style={styles.photoOverlay}>
+                      <Text style={styles.photoDate}>{photo.streak_date}</Text>
+                    </View>
+                  </View>
+                ))}
+              </ScrollView>
+            </View>
+          ) : (
+            <View style={styles.emptyPhoto}>
+              <Text style={styles.emptyPhotoText}>이 기간의 기록이 없어요</Text>
+            </View>
           )}
+
+          {uniquePlaces.length > 0 && (
+            <View style={styles.placesRow}>
+              {uniquePlaces.map((place) => (
+                <Badge key={place} size="small" type="blue" badgeStyle="weak">
+                  {`📍 ${place}`}
+                </Badge>
+              ))}
+            </View>
+          )}
+
+          {placeCounts.length > 0 && (
+            <View style={styles.summaryBox}>
+              <Text style={styles.summaryTitle}>장소 요약</Text>
+              <Text style={styles.summaryText}>
+                {placeCounts
+                  .slice(0, 3)
+                  .map(([place, count]) => `${place} ${count}회`)
+                  .join(' · ')}
+              </Text>
+            </View>
+          )}
+
+          <View style={styles.statsRow}>
+            <View style={styles.statItem}>
+              <Text style={styles.statValue}>{data?.photos.length ?? 0}개</Text>
+              <Text style={styles.statLabel}>기록</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              <Text style={styles.statValue}>{placeCounts.length}곳</Text>
+              <Text style={styles.statLabel}>방문 장소</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              <Text style={styles.statValue}>{streak}일</Text>
+              <Text style={styles.statLabel}>연속 기록</Text>
+            </View>
+          </View>
+        </ScrollView>
+      )}
 
       <View style={styles.actions}>
         <Button
@@ -234,7 +218,7 @@ const styles = StyleSheet.create({
   headerStreak: {
     fontSize: 13,
     fontWeight: '600',
-    color: colors.blue500,
+    color: brandColors.primary,
     marginTop: 2,
   },
   skeletonBox: {

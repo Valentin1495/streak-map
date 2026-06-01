@@ -5,15 +5,9 @@ import { contactsViral } from '@apps-in-toss/framework';
 import { grantPhotoSlotReward } from '../lib/supabase';
 import { RecapMilestone } from '../lib/milestones';
 
-export type RewardAdStatus =
-  | 'unsupported'
-  | 'loading'
-  | 'ready'
-  | 'showing'
-  | 'claimed_today'
-  | 'max_reached';
+export type RewardAdStatus = 'unsupported' | 'loading' | 'ready' | 'showing' | 'claimed_today' | 'max_reached';
 
-interface SettingsViewProps {
+interface BenefitsViewProps {
   userId: string | null;
   streak: number;
   recapAdStatus: RewardAdStatus;
@@ -23,7 +17,7 @@ interface SettingsViewProps {
   onSlotRewardGranted?: () => void;
 }
 
-export function SettingsView({
+export function BenefitsView({
   userId,
   streak,
   recapAdStatus,
@@ -31,12 +25,12 @@ export function SettingsView({
   onRecapPress,
   onDebugRecapPress,
   onSlotRewardGranted,
-}: SettingsViewProps) {
+}: BenefitsViewProps) {
   const handleContactsViral = useCallback(() => {
     if (userId == null || hasShareReward) return;
     try {
       const cleanup = contactsViral({
-        options: { moduleId: 'dayshot-share' },
+        options: { moduleId: '5ad21381-2517-4aa6-8136-a3d92cc69420' },
         onEvent: async (event) => {
           if (event.type === 'sendViral') {
             try {
@@ -66,7 +60,11 @@ export function SettingsView({
   }, [hasShareReward, userId, onSlotRewardGranted]);
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer} showsVerticalScrollIndicator={false}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.contentContainer}
+      showsVerticalScrollIndicator={false}
+    >
       <Text style={styles.title}>혜택</Text>
 
       <View style={styles.section}>
@@ -79,13 +77,12 @@ export function SettingsView({
           {([7, 14, 30] as RecapMilestone[]).map((milestone, index) => {
             const unlocked = streak >= milestone;
             const isLast = index === 2;
-            const title =
-              milestone === 7 ? '주간 요약' : milestone === 14 ? '14일 장소 요약' : '월간 요약';
+            const title = milestone === 7 ? '주간 요약' : milestone === 14 ? '2주 요약' : '월간 요약';
             const description =
               milestone === 7
-                ? '이번 주 기록과 베스트 사진을 모아봐요.'
+                ? '이번 주 기록과 베스트 샷을 모아봐요.'
                 : milestone === 14
-                  ? '자주 간 장소와 사진 흐름을 확인해요.'
+                  ? '최근 2주 기록과 베스트 샷을 모아봐요.'
                   : '30일 동안 쌓인 사진, 장소, 베스트 샷을 돌아봐요.';
             const disabled = !unlocked && recapAdStatus === 'showing';
             const buttonLabel = (() => {
@@ -101,11 +98,7 @@ export function SettingsView({
                   <View style={styles.benefitTextBlock}>
                     <View style={styles.benefitTitleRow}>
                       <Text style={styles.rowTitle}>{title}</Text>
-                      <Badge
-                        size="small"
-                        type={unlocked ? 'blue' : 'yellow'}
-                        badgeStyle="weak"
-                      >
+                      <Badge size="small" type={unlocked ? 'blue' : 'yellow'} badgeStyle="weak">
                         {unlocked ? '해금' : '광고 시청'}
                       </Badge>
                     </View>

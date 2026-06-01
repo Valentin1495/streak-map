@@ -1,13 +1,7 @@
 import React, { useEffect, useRef } from 'react';
-import {
-  Animated,
-  Image,
-  Modal,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { Animated, Image, Modal, StyleSheet, Text, View } from 'react-native';
 import { Badge, Button, colors } from '@toss/tds-react-native';
+import { brandColors } from '../lib/theme';
 
 const MILESTONES = [3, 7, 14, 30, 100];
 const RECAP_MILESTONES = [7, 14, 30];
@@ -78,12 +72,7 @@ export function StreakAchievedModal({
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.overlay}>
-        <Animated.View
-          style={[
-            styles.card,
-            { transform: [{ scale: scaleAnim }], opacity: opacityAnim },
-          ]}
-        >
+        <Animated.View style={[styles.card, { transform: [{ scale: scaleAnim }], opacity: opacityAnim }]}>
           <Text style={styles.flameIcon}>🔥</Text>
 
           <View style={styles.countRow}>
@@ -92,23 +81,14 @@ export function StreakAchievedModal({
           </View>
 
           {isMilestone && (
-            <Badge
-              size="large"
-              type="yellow"
-              badgeStyle="weak"
-              style={styles.milestoneBadge}
-            >
+            <Badge size="large" type="yellow" badgeStyle="weak" style={styles.milestoneBadge}>
               {`🎉 ${streak}일 달성! 대단해요!`}
             </Badge>
           )}
 
-          {photoUri != null && (
-            <Image source={{ uri: photoUri }} style={styles.thumbnail} resizeMode="cover" />
-          )}
+          {photoUri != null && <Image source={{ uri: photoUri }} style={styles.thumbnail} resizeMode="cover" />}
 
-          {placeName != null && placeName !== '' && (
-            <Text style={styles.placeName}>📍 {placeName}</Text>
-          )}
+          {placeName != null && placeName !== '' && <Text style={styles.placeName}>📍 {placeName}</Text>}
 
           <Button
             type="primary"
@@ -224,6 +204,6 @@ const styles = StyleSheet.create({
   progressBar: {
     height: 3,
     borderRadius: 2,
-    backgroundColor: colors.blue300,
+    backgroundColor: brandColors.primarySoft,
   },
 });
