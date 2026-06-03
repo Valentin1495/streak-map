@@ -14,29 +14,29 @@ url: >-
 
 ```typescript
 interface LocationCoords {
-    /**
-     * 위도
-     */
-    latitude: number;
-    /**
-     * 경도
-     */
-    longitude: number;
-    /**
-     * 높이
-     */
-    altitude: number;
-    /**
-     * 위치 정확도
-     */
-    accuracy: number;
-    /**
-     * 고도 정확도
-     */
-    altitudeAccuracy: number;
-    /**
-     * 방향
-     */
-    heading: number;
+  /**
+   * 위도
+   */
+  latitude: number;
+  /**
+   * 경도
+   */
+  longitude: number;
+  /**
+   * 높이
+   */
+  altitude: number;
+  /**
+   * 위치 정확도
+   */
+  accuracy: number;
+  /**
+   * 고도 정확도
+   */
+  altitudeAccuracy: number;
+  /**
+   * 방향
+   */
+  heading: number;
 }
 ```

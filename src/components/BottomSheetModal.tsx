@@ -1,13 +1,5 @@
 import React, { ReactNode, useEffect, useRef, useState } from 'react';
-import {
-  Animated,
-  Dimensions,
-  Modal,
-  StyleProp,
-  StyleSheet,
-  TouchableOpacity,
-  ViewStyle,
-} from 'react-native';
+import { Animated, Dimensions, Modal, StyleProp, StyleSheet, TouchableOpacity, ViewStyle } from 'react-native';
 import { colors } from '@toss/tds-react-native';
 
 interface BottomSheetModalProps {
@@ -80,11 +72,7 @@ export function BottomSheetModal({
   return (
     <Modal visible={mounted} transparent animationType="none" onRequestClose={onClose}>
       <Animated.View style={[styles.overlay, overlayStyle, { opacity }]}>
-        <TouchableOpacity
-          style={StyleSheet.absoluteFill}
-          activeOpacity={1}
-          onPress={onClose}
-        />
+        <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={onClose} />
         <Animated.View
           style={[
             styles.sheet,

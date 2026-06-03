@@ -56,9 +56,7 @@ export async function insertPhoto(params: InsertPhotoParams): Promise<Photo> {
   const timestamp = now.getTime();
   const storagePath = `${userId}/${year}/${month}/${timestamp}.webp`;
 
-  const binary = Uint8Array.from(atob(imageBase64.replace(/^data:image\/\w+;base64,/, '')), (c) =>
-    c.charCodeAt(0)
-  );
+  const binary = Uint8Array.from(atob(imageBase64.replace(/^data:image\/\w+;base64,/, '')), (c) => c.charCodeAt(0));
 
   const { error: uploadError } = await supabase.storage
     .from(BUCKET)
@@ -136,19 +134,22 @@ export interface DailyLimitInfo {
 export async function getDailyPhotoLimit(userId: string): Promise<DailyLimitInfo> {
   const [hasAdReward, hasShareReward] = await Promise.all([
     hasClaimedPhotoSlotRewardToday(userId, 'rewarded_ad'),
-    hasClaimedPhotoSlotRewardToday(userId, 'viral_share')
+    hasClaimedPhotoSlotRewardToday(userId, 'viral_share'),
   ]);
-  
+
   let limit = MAX_DAILY_PHOTOS;
   if (hasAdReward) limit += 1;
   if (hasShareReward) limit += 1;
-  
+
   return { limit, hasAdReward, hasShareReward };
 }
 
 export type PhotoSlotRewardResult = 'granted' | 'already_claimed_today';
 
-export async function grantPhotoSlotReward(userId: string, source: string = 'rewarded_ad'): Promise<PhotoSlotRewardResult> {
+export async function grantPhotoSlotReward(
+  userId: string,
+  source: string = 'rewarded_ad'
+): Promise<PhotoSlotRewardResult> {
   const today = toKstDateString(new Date());
 
   const { error } = await supabase.from('daily_photo_slot_rewards').insert({
@@ -217,10 +218,7 @@ export async function setRepresentativePhoto(photo: Photo): Promise<void> {
     throw new Error(`기존 대표 사진 해제 실패: ${resetError.message}`);
   }
 
-  const { error: updateError } = await supabase
-    .from('photos')
-    .update({ is_representative: true })
-    .eq('id', photo.id);
+  const { error: updateError } = await supabase.from('photos').update({ is_representative: true }).eq('id', photo.id);
 
   if (updateError != null) {
     throw new Error(`대표 사진 설정 실패: ${updateError.message}`);

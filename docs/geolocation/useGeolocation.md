@@ -46,7 +46,9 @@ function LocationWatcher() {
 
   return (
     <View>
-      <Text>위치 정보: {location.latitude}, {location.longitude}</Text>
+      <Text>
+        위치 정보: {location.latitude}, {location.longitude}
+      </Text>
     </View>
   );
 }

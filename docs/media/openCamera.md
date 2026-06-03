@@ -12,10 +12,7 @@ url: >-
 ## 시그니처
 
 ```typescript
-function openCamera(options: {
-  base64: boolean;
-  maxWidth: number;
-}): Promise<ImageResponse>;
+function openCamera(options: { base64: boolean; maxWidth: number }): Promise<ImageResponse>;
 ```
 
 ### 파라미터
@@ -26,8 +23,8 @@ function openCamera(options: {
 
 촬영된 이미지 정보를 포함한 객체를 반환해요. 반환 객체의 구성은 다음과 같아요:
 
-* `id`: 이미지의 고유 식별자예요.
-* `dataUri`: 이미지 데이터를 표현하는 데이터 URI예요.
+- `id`: 이미지의 고유 식별자예요.
+- `dataUri`: 이미지 데이터를 표현하는 데이터 URI예요.
 
 ## OpenCameraPermissionError
 
@@ -37,7 +34,7 @@ function openCamera(options: {
 
 ```typescript
 class OpenCameraPermissionError extends PermissionError {
-    constructor();
+  constructor();
 }
 ```
 
@@ -110,7 +107,8 @@ function Camera() {
     <div>
       {image ? <Image source={{ uri: imageUri }} style={{ width: 200, height: 200 }} /> : <span>사진이 없어요</span>}
       <input type="button" value="사진 촬영하기" onClick={handlePress} />
-      <input type="button"
+      <input
+        type="button"
         value="권한 확인하기"
         onClick={async () => {
           const permission = await openCamera.getPermission();
@@ -118,7 +116,8 @@ function Camera() {
         }}
       />
 
-      <input type="button"
+      <input
+        type="button"
         value="권한 요청하기"
         onClick={async () => {
           const currentPermission = await openCamera.openPermissionDialog();

@@ -33,7 +33,7 @@ function startUpdateLocation(options: {
 ## 시그니처
 
 ```typescript
-StartUpdateLocationPermissionError: typeof GetCurrentLocationPermissionError
+StartUpdateLocationPermissionError: typeof GetCurrentLocationPermissionError;
 ```
 
 ## 예제
@@ -55,7 +55,7 @@ let cleanup;
 
 async function handleStartUpdateLocation() {
   cleanup?.();
-  
+
   cleanup = startUpdateLocation({
     options: {
       accuracy: Accuracy.Balanced,
@@ -90,9 +90,13 @@ async function handleOpenPermissionDialogForStartUpdateLocation() {
 ```
 
 ```tsx [React]
-import { Accuracy, Location, startUpdateLocation, StartUpdateLocationPermissionError } from '@apps-in-toss/web-framework';
+import {
+  Accuracy,
+  Location,
+  startUpdateLocation,
+  StartUpdateLocationPermissionError,
+} from '@apps-in-toss/web-framework';
 import { useCallback, useState } from 'react';
-
 
 // 위치 정보 변경 감지하기
 function LocationWatcher() {
@@ -132,14 +136,16 @@ function LocationWatcher() {
 
       <input type="button" value="위치 정보 변경 감지하기" onClick={handlePress} />
 
-      <input type="button"
+      <input
+        type="button"
         value="권한 확인하기"
         onClick={async () => {
           const permission = await startUpdateLocation.getPermission();
           alert(permission);
         }}
       />
-      <input type="button"
+      <input
+        type="button"
         value="권한 요청하기"
         onClick={async () => {
           const permission = await startUpdateLocation.openPermissionDialog();

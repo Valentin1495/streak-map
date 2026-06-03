@@ -7,17 +7,17 @@ description: '앱인토스 Unity SDK의 공유 API 레퍼런스예요. 공유 �
 
 토스 공유 링크 생성, 연락처 기반 바이럴, 콘텐츠 공유 등의 API예요.
 
-***
+---
 
 ## API
 
-| API | 반환 타입 | 설명 |
-|-----|----------|------|
-| `AIT.Share()` | `void` | 콘텐츠를 공유해요 |
-| `AIT.GetTossShareLink()` | `string` | 토스 공유 링크를 생성해요 |
-| `AIT.ContactsViral()` | `Action` (구독) | 연락처 기반 바이럴을 실행해요 |
+| API                      | 반환 타입       | 설명                          |
+| ------------------------ | --------------- | ----------------------------- |
+| `AIT.Share()`            | `void`          | 콘텐츠를 공유해요             |
+| `AIT.GetTossShareLink()` | `string`        | 토스 공유 링크를 생성해요     |
+| `AIT.ContactsViral()`    | `Action` (구독) | 연락처 기반 바이럴을 실행해요 |
 
-***
+---
 
 ## Share
 
@@ -38,7 +38,7 @@ catch (AITException ex)
 }
 ```
 
-***
+---
 
 ## GetTossShareLink
 
@@ -60,12 +60,12 @@ catch (AITException ex)
 }
 ```
 
-| 파라미터 | 타입 | 필수 | 설명 |
-|---------|------|------|------|
-| `path` | `string` | O | `intoss://`로 시작하는 딥링크 경로 |
-| `ogImageUrl` | `string` | X | 공유 시 표시될 OG 이미지 URL |
+| 파라미터     | 타입     | 필수 | 설명                               |
+| ------------ | -------- | ---- | ---------------------------------- |
+| `path`       | `string` | O    | `intoss://`로 시작하는 딥링크 경로 |
+| `ogImageUrl` | `string` | X    | 공유 시 표시될 OG 이미지 URL       |
 
-***
+---
 
 ## ContactsViral
 
@@ -93,5 +93,5 @@ Action unsubscribe = AIT.ContactsViral(
 
 ::: tip
 
-* 구독 기반 API는 `OnDestroy`에서 반드시 구독을 해제해 주세요.
+- 구독 기반 API는 `OnDestroy`에서 반드시 구독을 해제해 주세요.
   :::

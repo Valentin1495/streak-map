@@ -15,3 +15,8 @@ yarn-error.log
 .granite
 .swc
 .DS_Store
+
+# Apps in Toss generated files
+.ait
+.ait/
+*.ait

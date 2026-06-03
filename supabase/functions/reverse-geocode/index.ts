@@ -77,9 +77,7 @@ Deno.serve(async (request) => {
 function formatPlaceName(results: GeoResult[]): string {
   const roadaddr = results.find((result) => result.name === 'roadaddr');
   if (roadaddr?.land?.name && roadaddr.land.number1) {
-    const area = [roadaddr.region?.area1?.name, roadaddr.region?.area2?.name]
-      .filter(Boolean)
-      .join(' ');
+    const area = [roadaddr.region?.area1?.name, roadaddr.region?.area2?.name].filter(Boolean).join(' ');
     return `${area} ${roadaddr.land.name} ${roadaddr.land.number1}`.trim();
   }
 
@@ -102,11 +100,7 @@ function formatPlaceName(results: GeoResult[]): string {
 }
 
 function formatRegion(result: GeoResult | undefined): string {
-  return [
-    result?.region?.area1?.name,
-    result?.region?.area2?.name,
-    result?.region?.area3?.name,
-  ]
+  return [result?.region?.area1?.name, result?.region?.area2?.name, result?.region?.area3?.name]
     .filter(Boolean)
     .join(' ');
 }

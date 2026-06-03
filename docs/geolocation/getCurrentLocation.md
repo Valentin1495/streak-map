@@ -15,9 +15,7 @@ url: >-
 ## 시그니처
 
 ```typescript
-function getCurrentLocation(options: {
-  accuracy: Accuracy;
-}): Promise<Location>;
+function getCurrentLocation(options: { accuracy: Accuracy }): Promise<Location>;
 ```
 
 ### 파라미터
@@ -34,7 +32,7 @@ function getCurrentLocation(options: {
 
 ```typescript
 class GetCurrentLocationPermissionError extends PermissionError {
-    constructor();
+  constructor();
 }
 ```
 
@@ -75,7 +73,6 @@ async function handleOpenPermissionDialogForGetCurrentLocation() {
 import { Accuracy, getCurrentLocation, Location } from '@apps-in-toss/web-framework';
 import { useState } from 'react';
 
-
 // 현재 위치 정보를 가져와 화면에 표시하는 컴포넌트
 function CurrentPosition() {
   const [position, setPosition] = useState<Location | null>(null);
@@ -99,13 +96,15 @@ function CurrentPosition() {
         <span>위치 정보를 아직 가져오지 않았어요</span>
       )}
       <input type="button" value="현재 위치 정보 가져오기" onClick={handlePress} />
-      <input type="button"
+      <input
+        type="button"
         value="권한 확인하기"
         onClick={async () => {
           alert(await getCurrentLocation.getPermission());
         }}
       />
-      <input type="button"
+      <input
+        type="button"
         value="권한 요청하기"
         onClick={async () => {
           alert(await getCurrentLocation.openPermissionDialog());
@@ -159,7 +158,6 @@ function CurrentPosition() {
     </View>
   );
 }
-
 ```
 
 :::

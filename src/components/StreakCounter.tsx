@@ -45,12 +45,8 @@ export function StreakCounter({ streak, hasTodayRecord }: StreakCounterProps) {
         ]}
       >
         <Text style={[styles.flame, !hasTodayRecord && styles.flameInactive]}>🔥</Text>
-        <Text style={[styles.count, hasTodayRecord ? styles.countActive : styles.countInactive]}>
-          {streak}
-        </Text>
-        <Text style={[styles.unit, hasTodayRecord ? styles.unitActive : styles.unitInactive]}>
-          일 연속
-        </Text>
+        <Text style={[styles.count, hasTodayRecord ? styles.countActive : styles.countInactive]}>{streak}</Text>
+        <Text style={[styles.unit, hasTodayRecord ? styles.unitActive : styles.unitInactive]}>일 연속</Text>
       </Animated.View>
 
       <Text style={[styles.status, hasTodayRecord ? styles.statusDone : styles.statusPending]}>

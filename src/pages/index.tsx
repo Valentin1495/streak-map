@@ -32,7 +32,8 @@ export const Route = createRoute('/', {
   component: HomePage,
 });
 
-const REWARDED_AD_GROUP_ID = 'ait-ad-test-rewarded-id';
+const RECAP_REWARDED_AD_GROUP_ID = 'ait.v2.live.4e9701c09f4f4482';
+const PHOTO_SLOT_REWARDED_AD_GROUP_ID = 'ait.v2.live.8a8c6bdf9d0446ee';
 
 function getEffectiveDailyLimit(info: DailyLimitInfo): number {
   return MAX_DAILY_PHOTOS + (info.hasAdReward ? 1 : 0) + (info.hasShareReward ? 1 : 0);
@@ -337,7 +338,7 @@ function HomePage() {
     setRecapAdStatus('loading');
 
     recapAdCleanupRef.current = loadFullScreenAd({
-      options: { adGroupId: REWARDED_AD_GROUP_ID },
+      options: { adGroupId: RECAP_REWARDED_AD_GROUP_ID },
       onEvent: (event) => {
         if (event.type === 'loaded') {
           isRecapAdLoadedRef.current = true;
@@ -364,7 +365,7 @@ function HomePage() {
     setSlotAdStatus('loading');
 
     slotAdCleanupRef.current = loadFullScreenAd({
-      options: { adGroupId: REWARDED_AD_GROUP_ID },
+      options: { adGroupId: PHOTO_SLOT_REWARDED_AD_GROUP_ID },
       onEvent: (event) => {
         if (event.type === 'loaded') {
           isSlotAdLoadedRef.current = true;
@@ -414,6 +415,10 @@ function HomePage() {
         const [data] = await Promise.all([dataPromise, refreshDailyPhotoLimit(uid)]);
 
         if (data != null) {
+          if (data.length > 0) {
+            setShowOnboarding(false);
+          }
+          await checkPendingCapture(data, uid);
           track('home_viewed', {
             streak_count: calculateStreak(data),
             has_photo_today: hasTodayRecord(data),
@@ -427,7 +432,7 @@ function HomePage() {
       }
     }
     init();
-  }, [fetchPhotos, refreshDailyPhotoLimit]);
+  }, [fetchPhotos, refreshDailyPhotoLimit, checkPendingCapture]);
 
   useEffect(() => {
     const uid = userIdRef.current;
@@ -519,7 +524,7 @@ function HomePage() {
     setSlotAdStatus('showing');
     hasEarnedSlotAdRewardRef.current = false;
     showFullScreenAd({
-      options: { adGroupId: REWARDED_AD_GROUP_ID },
+      options: { adGroupId: PHOTO_SLOT_REWARDED_AD_GROUP_ID },
       onEvent: (event) => {
         if (event.type === 'userEarnedReward') {
           if (hasEarnedSlotAdRewardRef.current) return;
@@ -594,7 +599,7 @@ function HomePage() {
     setRecapAdStatus('showing');
 
     showFullScreenAd({
-      options: { adGroupId: REWARDED_AD_GROUP_ID },
+      options: { adGroupId: RECAP_REWARDED_AD_GROUP_ID },
       onEvent: (event) => {
         if (event.type === 'userEarnedReward') {
           if (hasUnlockedCurrentRecapRef.current) return;

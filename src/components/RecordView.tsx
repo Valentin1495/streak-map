@@ -6,6 +6,7 @@ import { MapWebView } from './MapWebView';
 import { track } from '../lib/analytics';
 import { StreakCounter } from './StreakCounter';
 import { BottomSheetModal } from './BottomSheetModal';
+import { FullPhotoModal } from './FullPhotoModal';
 import { brandColors } from '../lib/theme';
 
 type RecordViewMode = 'map' | 'calendar';
@@ -31,6 +32,11 @@ function formatKoreanDate(dateStr: string): string {
   const month = parseInt(parts[1] ?? '1', 10);
   const day = parseInt(parts[2] ?? '1', 10);
   return `${month}월 ${day}일`;
+}
+
+function getVisibleText(value: string | null): string | null {
+  const trimmed = value?.trim();
+  return trimmed != null && trimmed.length > 0 ? trimmed : null;
 }
 
 interface CalendarViewProps {
@@ -212,6 +218,9 @@ export function RecordView({ photos, onPhotosChange, streak }: RecordViewProps) 
   const [selectedPlaceGroup, setSelectedPlaceGroup] = useState<PlaceGroup | null>(null);
   const [selectedRecordPhoto, setSelectedRecordPhoto] = useState<Photo | null>(null);
   const [pendingPhotoSelection, setPendingPhotoSelection] = useState<PendingPhotoSelection | null>(null);
+  const [photoSheetReturnPlaceGroup, setPhotoSheetReturnPlaceGroup] = useState<PlaceGroup | null>(null);
+  const [pendingPhotoSheetReturnPlaceGroup, setPendingPhotoSheetReturnPlaceGroup] = useState<PlaceGroup | null>(null);
+  const [fullPhoto, setFullPhoto] = useState<Photo | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isSettingRepresentative, setIsSettingRepresentative] = useState(false);
 
@@ -266,6 +275,14 @@ export function RecordView({ photos, onPhotosChange, streak }: RecordViewProps) 
   };
 
   const closePhotoSheet = () => {
+    setPhotoSheetReturnPlaceGroup(null);
+    setPendingPhotoSheetReturnPlaceGroup(null);
+    setSelectedPhoto(null);
+  };
+
+  const returnToPlaceStatsSheet = () => {
+    if (photoSheetReturnPlaceGroup == null) return;
+    setPendingPhotoSheetReturnPlaceGroup(photoSheetReturnPlaceGroup);
     setSelectedPhoto(null);
   };
 
@@ -284,6 +301,7 @@ export function RecordView({ photos, onPhotosChange, streak }: RecordViewProps) 
       photo,
       group: selectedPlaceGroup?.photos ?? photosByDate.get(photo.streak_date),
     });
+    setPhotoSheetReturnPlaceGroup(statsSheetMode === 'places' ? selectedPlaceGroup : null);
     setStatsSheetMode(null);
   };
 
@@ -451,19 +469,23 @@ export function RecordView({ photos, onPhotosChange, streak }: RecordViewProps) 
             contentContainerStyle={styles.recordDetailContent}
             showsVerticalScrollIndicator={false}
           >
-            <Image
-              source={{ uri: getPhotoUrl(selectedRecordPhoto.storage_path) }}
-              style={styles.recordDetailImage}
-              resizeMode="cover"
-            />
+            <TouchableOpacity onPress={() => setFullPhoto(selectedRecordPhoto)} activeOpacity={1}>
+              <Image
+                source={{ uri: getPhotoUrl(selectedRecordPhoto.storage_path) }}
+                style={styles.recordDetailImage}
+                resizeMode="contain"
+              />
+            </TouchableOpacity>
             <View style={styles.recordDetailBody}>
               <Text style={styles.recordTitle}>{formatKoreanDate(selectedRecordPhoto.streak_date)}</Text>
               {selectedRecordPhoto.place_name != null && selectedRecordPhoto.place_name !== '' && (
                 <Text style={styles.recordMeta}>{selectedRecordPhoto.place_name}</Text>
               )}
-              {selectedRecordPhoto.memo != null && selectedRecordPhoto.memo !== '' && (
-                <Text style={styles.recordDetailMemo}>{selectedRecordPhoto.memo}</Text>
-              )}
+              <Text
+                style={[styles.recordDetailMemo, getVisibleText(selectedRecordPhoto.memo) == null && styles.emptyMemo]}
+              >
+                {getVisibleText(selectedRecordPhoto.memo) ?? '남긴 메모가 없어요.'}
+              </Text>
             </View>
           </ScrollView>
         ) : statsSheetMode === 'records' ? (
@@ -552,7 +574,7 @@ export function RecordView({ photos, onPhotosChange, streak }: RecordViewProps) 
                     </Text>
                     <Text style={styles.recordMeta}>{item.photos.length}개의 기록</Text>
                     <Text style={styles.recordMemo} numberOfLines={1}>
-                      최근 {formatKoreanDate(firstPhoto.streak_date)}
+                      {formatKoreanDate(firstPhoto.streak_date)}
                     </Text>
                   </View>
                 </TouchableOpacity>
@@ -569,6 +591,12 @@ export function RecordView({ photos, onPhotosChange, streak }: RecordViewProps) 
         onExitComplete={() => {
           setDisplayPhoto(null);
           setDisplayGroup([]);
+          if (pendingPhotoSheetReturnPlaceGroup != null) {
+            setSelectedPlaceGroup(pendingPhotoSheetReturnPlaceGroup);
+            setStatsSheetMode('places');
+            setPendingPhotoSheetReturnPlaceGroup(null);
+            setPhotoSheetReturnPlaceGroup(null);
+          }
         }}
       >
         {displayPhoto != null && (
@@ -601,51 +629,73 @@ export function RecordView({ photos, onPhotosChange, streak }: RecordViewProps) 
               </ScrollView>
             )}
             <View style={styles.detailImageWrapper}>
-              <Image
-                source={{ uri: getPhotoUrl(displayPhoto.storage_path) }}
-                style={styles.detailImage}
-                resizeMode="cover"
-              />
+              <TouchableOpacity onPress={() => setFullPhoto(displayPhoto)} activeOpacity={1}>
+                <Image
+                  source={{ uri: getPhotoUrl(displayPhoto.storage_path) }}
+                  style={styles.detailImage}
+                  resizeMode="contain"
+                />
+              </TouchableOpacity>
             </View>
             <View style={styles.detailBody}>
-              <Text style={styles.detailDate}>{formatKoreanDate(displayPhoto.streak_date)}</Text>
-              {displayPhoto.place_name != null && displayPhoto.place_name !== '' && (
-                <Text style={styles.detailPlace}>📍 {displayPhoto.place_name}</Text>
-              )}
-              {displayPhoto.memo != null && displayPhoto.memo !== '' && (
-                <Text style={styles.detailMemo}>{displayPhoto.memo}</Text>
-              )}
+              <View style={styles.detailInfo}>
+                <Text style={styles.detailDate}>{formatKoreanDate(displayPhoto.streak_date)}</Text>
+                {displayPhoto.place_name != null && displayPhoto.place_name !== '' && (
+                  <Text style={styles.detailPlace}>📍 {displayPhoto.place_name}</Text>
+                )}
+                <Text style={[styles.detailMemo, getVisibleText(displayPhoto.memo) == null && styles.emptyMemo]}>
+                  {getVisibleText(displayPhoto.memo) ?? '남긴 메모가 없어요.'}
+                </Text>
+              </View>
 
-              <Button
-                type="primary"
-                style="weak"
-                size="medium"
-                display="full"
-                onPress={handleSetRepresentative}
-                disabled={displayPhoto.is_representative || isSettingRepresentative}
-                loading={isSettingRepresentative}
-                viewStyle={styles.repButton}
-                containerStyle={styles.actionButtonContainer}
-              >
-                {displayPhoto.is_representative ? '현재 대표 사진' : '대표 사진으로 설정'}
-              </Button>
-              <Button
-                type="danger"
-                style="weak"
-                size="medium"
-                display="full"
-                onPress={handleDelete}
-                disabled={isDeleting}
-                loading={isDeleting}
-                viewStyle={styles.deleteButton}
-                containerStyle={styles.actionButtonContainer}
-              >
-                삭제
-              </Button>
+              <View style={styles.actionGroup}>
+                <Button
+                  type="primary"
+                  style="weak"
+                  size="medium"
+                  display="full"
+                  onPress={handleSetRepresentative}
+                  disabled={displayPhoto.is_representative || isSettingRepresentative}
+                  loading={isSettingRepresentative}
+                  containerStyle={styles.actionButtonContainer}
+                >
+                  {displayPhoto.is_representative ? '현재 대표 사진' : '대표 사진으로 설정'}
+                </Button>
+                <Button
+                  type="danger"
+                  style="weak"
+                  size="medium"
+                  display="full"
+                  onPress={handleDelete}
+                  disabled={isDeleting}
+                  loading={isDeleting}
+                  containerStyle={styles.actionButtonContainer}
+                >
+                  삭제
+                </Button>
+                {photoSheetReturnPlaceGroup != null && (
+                  <Button
+                    type="dark"
+                    style="weak"
+                    size="medium"
+                    display="full"
+                    onPress={returnToPlaceStatsSheet}
+                    containerStyle={styles.actionButtonContainer}
+                  >
+                    돌아가기
+                  </Button>
+                )}
+              </View>
             </View>
           </View>
         )}
       </BottomSheetModal>
+      <FullPhotoModal
+        visible={fullPhoto != null}
+        uri={fullPhoto == null ? null : getPhotoUrl(fullPhoto.storage_path)}
+        placeName={fullPhoto?.place_name}
+        onClose={() => setFullPhoto(null)}
+      />
     </View>
   );
 }
@@ -747,6 +797,7 @@ const styles = StyleSheet.create({
   },
   statsListContent: {
     padding: 16,
+    paddingBottom: 48,
     gap: 10,
   },
   recordRow: {
@@ -789,18 +840,20 @@ const styles = StyleSheet.create({
   },
   recordDetailContent: {
     padding: 16,
+    paddingBottom: 48,
     gap: 14,
   },
   recordDetailImage: {
     width: '100%',
     aspectRatio: 1.35,
     borderRadius: 12,
-    backgroundColor: colors.grey200,
+    backgroundColor: colors.black,
   },
   recordDetailBody: {
     gap: 6,
   },
   recordDetailMemo: {
+    minHeight: 42,
     fontSize: 14,
     lineHeight: 21,
     color: colors.grey700,
@@ -853,7 +906,7 @@ const styles = StyleSheet.create({
     margin: 12,
     borderRadius: 14,
     overflow: 'hidden',
-    backgroundColor: colors.grey200,
+    backgroundColor: colors.black,
   },
   detailImage: {
     width: '100%',
@@ -861,7 +914,9 @@ const styles = StyleSheet.create({
   },
   detailBody: {
     padding: 16,
-    paddingBottom: 28,
+    paddingBottom: 48,
+  },
+  detailInfo: {
     gap: 8,
   },
   detailDate: {
@@ -875,18 +930,17 @@ const styles = StyleSheet.create({
     color: colors.grey900,
   },
   detailMemo: {
+    minHeight: 42,
     fontSize: 14,
     color: colors.grey700,
     lineHeight: 21,
   },
-  repButton: {
-    marginTop: 16,
+  emptyMemo: {
+    color: colors.grey400,
   },
-  deleteButton: {
+  actionGroup: {
     marginTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: colors.grey100,
-    paddingTop: 16,
+    gap: 8,
   },
   actionButtonContainer: {
     borderRadius: 10,

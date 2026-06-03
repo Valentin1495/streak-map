@@ -1,177 +1,400 @@
-
 <style>
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: var(--font-sans); }
-.wrap { padding: 0.5rem 0 2rem; }
-.sec-title { font-size: 11px; font-weight: 500; color: var(--color-text-tertiary); text-transform: uppercase; letter-spacing: 0.07em; margin: 20px 0 10px; padding-bottom: 8px; border-bottom: 0.5px solid var(--color-border-tertiary); }
-.sec-title:first-child { margin-top: 0; }
-.card { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); overflow: hidden; margin-bottom: 10px; }
-.card-head { padding: 12px 16px; border-bottom: 0.5px solid var(--color-border-tertiary); display: flex; align-items: center; gap: 8px; }
-.card-title { font-size: 14px; font-weight: 500; color: var(--color-text-primary); flex: 1; }
-.card-sub { font-size: 12px; color: var(--color-text-secondary); margin-top: 1px; }
-.badge { font-size: 10px; font-weight: 500; padding: 2px 8px; border-radius: 99px; flex-shrink: 0; }
-.b-must { background: #FCEBEB; color: #A32D2D; }
-.b-later { background: #F1EFE8; color: #5F5E5A; }
-.b-new { background: #EEEDFE; color: #3C3489; }
-.card-body { padding: 12px 16px; font-size: 13px; color: var(--color-text-secondary); line-height: 1.7; }
-.card-body b { font-weight: 500; color: var(--color-text-primary); }
-.highlight-box { background: var(--color-background-secondary); border-radius: var(--border-radius-md); padding: 11px 13px; margin-top: 8px; font-size: 12px; color: var(--color-text-secondary); line-height: 1.6; }
-.highlight-box b { font-weight: 500; color: var(--color-text-primary); }
-.change-row { display: flex; align-items: flex-start; gap: 10px; padding: 9px 16px; border-bottom: 0.5px solid var(--color-border-tertiary); font-size: 13px; }
-.change-row:last-child { border-bottom: none; }
-.change-from { flex: 1; color: var(--color-text-tertiary); text-decoration: line-through; font-size: 12px; }
-.change-arrow { color: var(--color-text-tertiary); flex-shrink: 0; padding-top: 1px; }
-.change-to { flex: 1; color: var(--color-text-primary); font-size: 12px; font-weight: 500; }
-.flow-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
-.flow-step { background: var(--color-background-secondary); border-radius: var(--border-radius-md); padding: 10px 12px; }
-.flow-num { font-size: 10px; color: var(--color-text-tertiary); margin-bottom: 4px; }
-.flow-title { font-size: 13px; font-weight: 500; color: var(--color-text-primary); margin-bottom: 3px; }
-.flow-desc { font-size: 11px; color: var(--color-text-secondary); line-height: 1.5; }
-.sdk-tag { display: inline-block; font-size: 10px; padding: 1px 6px; border-radius: 99px; margin: 2px 2px 0 0; }
-.s-cam { background: #FAECE7; color: #993C1D; }
-.s-loc { background: #E1F5EE; color: #0F6E56; }
-.metric-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
-.metric { background: var(--color-background-secondary); border-radius: var(--border-radius-md); padding: 10px 12px; }
-.metric-label { font-size: 10px; color: var(--color-text-tertiary); margin-bottom: 4px; }
-.metric-val { font-size: 20px; font-weight: 500; color: var(--color-text-primary); }
-.metric-desc { font-size: 11px; color: var(--color-text-secondary); margin-top: 2px; }
-.vs-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0; }
-.vs-col { padding: 12px 14px; border-right: 0.5px solid var(--color-border-tertiary); }
-.vs-col:last-child { border-right: none; }
-.vs-label { font-size: 10px; font-weight: 500; color: var(--color-text-tertiary); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 6px; }
-.vs-val { font-size: 12px; color: var(--color-text-secondary); line-height: 1.6; }
-.vs-val b { font-weight: 500; color: var(--color-text-primary); }
-.big-concept { background: linear-gradient(135deg, #E1F5EE 0%, #EEEDFE 100%); border-radius: var(--border-radius-lg); padding: 20px; margin-bottom: 20px; text-align: center; }
-.big-concept-label { font-size: 11px; color: #0A5C45; font-weight: 500; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 8px; }
-.big-concept-title { font-size: 22px; font-weight: 500; color: #1A1A2E; margin-bottom: 6px; }
-.big-concept-sub { font-size: 13px; color: #444; line-height: 1.6; }
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+  body {
+    font-family: var(--font-sans);
+  }
+  .wrap {
+    padding: 0.5rem 0 2rem;
+  }
+  .sec-title {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--color-text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    margin: 20px 0 10px;
+    padding-bottom: 8px;
+    border-bottom: 0.5px solid var(--color-border-tertiary);
+  }
+  .sec-title:first-child {
+    margin-top: 0;
+  }
+  .card {
+    background: var(--color-background-primary);
+    border: 0.5px solid var(--color-border-tertiary);
+    border-radius: var(--border-radius-lg);
+    overflow: hidden;
+    margin-bottom: 10px;
+  }
+  .card-head {
+    padding: 12px 16px;
+    border-bottom: 0.5px solid var(--color-border-tertiary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .card-title {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--color-text-primary);
+    flex: 1;
+  }
+  .card-sub {
+    font-size: 12px;
+    color: var(--color-text-secondary);
+    margin-top: 1px;
+  }
+  .badge {
+    font-size: 10px;
+    font-weight: 500;
+    padding: 2px 8px;
+    border-radius: 99px;
+    flex-shrink: 0;
+  }
+  .b-must {
+    background: #fcebeb;
+    color: #a32d2d;
+  }
+  .b-later {
+    background: #f1efe8;
+    color: #5f5e5a;
+  }
+  .b-new {
+    background: #eeedfe;
+    color: #3c3489;
+  }
+  .card-body {
+    padding: 12px 16px;
+    font-size: 13px;
+    color: var(--color-text-secondary);
+    line-height: 1.7;
+  }
+  .card-body b {
+    font-weight: 500;
+    color: var(--color-text-primary);
+  }
+  .highlight-box {
+    background: var(--color-background-secondary);
+    border-radius: var(--border-radius-md);
+    padding: 11px 13px;
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--color-text-secondary);
+    line-height: 1.6;
+  }
+  .highlight-box b {
+    font-weight: 500;
+    color: var(--color-text-primary);
+  }
+  .change-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 9px 16px;
+    border-bottom: 0.5px solid var(--color-border-tertiary);
+    font-size: 13px;
+  }
+  .change-row:last-child {
+    border-bottom: none;
+  }
+  .change-from {
+    flex: 1;
+    color: var(--color-text-tertiary);
+    text-decoration: line-through;
+    font-size: 12px;
+  }
+  .change-arrow {
+    color: var(--color-text-tertiary);
+    flex-shrink: 0;
+    padding-top: 1px;
+  }
+  .change-to {
+    flex: 1;
+    color: var(--color-text-primary);
+    font-size: 12px;
+    font-weight: 500;
+  }
+  .flow-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .flow-step {
+    background: var(--color-background-secondary);
+    border-radius: var(--border-radius-md);
+    padding: 10px 12px;
+  }
+  .flow-num {
+    font-size: 10px;
+    color: var(--color-text-tertiary);
+    margin-bottom: 4px;
+  }
+  .flow-title {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--color-text-primary);
+    margin-bottom: 3px;
+  }
+  .flow-desc {
+    font-size: 11px;
+    color: var(--color-text-secondary);
+    line-height: 1.5;
+  }
+  .sdk-tag {
+    display: inline-block;
+    font-size: 10px;
+    padding: 1px 6px;
+    border-radius: 99px;
+    margin: 2px 2px 0 0;
+  }
+  .s-cam {
+    background: #faece7;
+    color: #993c1d;
+  }
+  .s-loc {
+    background: #e1f5ee;
+    color: #0f6e56;
+  }
+  .metric-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .metric {
+    background: var(--color-background-secondary);
+    border-radius: var(--border-radius-md);
+    padding: 10px 12px;
+  }
+  .metric-label {
+    font-size: 10px;
+    color: var(--color-text-tertiary);
+    margin-bottom: 4px;
+  }
+  .metric-val {
+    font-size: 20px;
+    font-weight: 500;
+    color: var(--color-text-primary);
+  }
+  .metric-desc {
+    font-size: 11px;
+    color: var(--color-text-secondary);
+    margin-top: 2px;
+  }
+  .vs-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 0;
+  }
+  .vs-col {
+    padding: 12px 14px;
+    border-right: 0.5px solid var(--color-border-tertiary);
+  }
+  .vs-col:last-child {
+    border-right: none;
+  }
+  .vs-label {
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--color-text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 6px;
+  }
+  .vs-val {
+    font-size: 12px;
+    color: var(--color-text-secondary);
+    line-height: 1.6;
+  }
+  .vs-val b {
+    font-weight: 500;
+    color: var(--color-text-primary);
+  }
+  .big-concept {
+    background: linear-gradient(135deg, #e1f5ee 0%, #eeedfe 100%);
+    border-radius: var(--border-radius-lg);
+    padding: 20px;
+    margin-bottom: 20px;
+    text-align: center;
+  }
+  .big-concept-label {
+    font-size: 11px;
+    color: #0a5c45;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    margin-bottom: 8px;
+  }
+  .big-concept-title {
+    font-size: 22px;
+    font-weight: 500;
+    color: #1a1a2e;
+    margin-bottom: 6px;
+  }
+  .big-concept-sub {
+    font-size: 13px;
+    color: #444;
+    line-height: 1.6;
+  }
 </style>
 
 <div class="wrap">
-
-<div class="big-concept">
-  <div class="big-concept-label">New Concept — v2</div>
-  <div class="big-concept-title">오늘 하루를 한 장의 사진으로 ✦</div>
-  <div class="big-concept-sub">매일 한 장의 사진을을 찍는 습관. 쌓인 기록이 내 삶의 지도가 된다.<br>Duolingo의 스트릭 구조 × Spotify Wrapped의 공유 바이럴</div>
-</div>
-
-<div class="sec-title">v1 → v2 변경사항</div>
-<div class="card">
-  <div class="change-row">
-    <div class="change-from">메인: 지도 위 사진 핀</div>
-    <div class="change-arrow">→</div>
-    <div class="change-to">메인: 오늘의 샷 + 스트릭</div>
-  </div>
-  <div class="change-row">
-    <div class="change-from">홈 화면: 지도</div>
-    <div class="change-arrow">→</div>
-    <div class="change-to">홈 화면: 스트릭 카운터 + 오늘 찍기 CTA</div>
-  </div>
-  <div class="change-row">
-    <div class="change-from">지도 = 핵심 기능</div>
-    <div class="change-arrow">→</div>
-    <div class="change-to">지도 = 스트릭의 시각적 보상 (탭 하나)</div>
-  </div>
-  <div class="change-row">
-    <div class="change-from">경쟁상대: 애플 사진 앱</div>
-    <div class="change-arrow">→</div>
-    <div class="change-to">경쟁상대: Day One, 모먼트, 루틴 앱</div>
-  </div>
-  <div class="change-row">
-    <div class="change-from">포지셔닝: 사진 지도 앱</div>
-    <div class="change-arrow">→</div>
-    <div class="change-to">포지셔닝: 하루 한 장의 사진 습관 다이어리</div>
-  </div>
-</div>
-
-<div class="sec-title">핵심 유저 플로우</div>
-<div class="flow-grid">
-  <div class="flow-step">
-    <div class="flow-num">1 · 진입</div>
-    <div class="flow-title">스트릭 홈</div>
-    <div class="flow-desc">오늘 찍었으면 스트릭 불꽃 🔥 활성화. 안 찍었으면 "오늘 아직 비어있어요" + 큰 셔터 버튼</div>
-  </div>
-  <div class="flow-step">
-    <div class="flow-num">2 · 행동</div>
-    <div class="flow-title">한 장의 사진 찍기</div>
-    <div class="flow-desc">카메라 SDK 호출. 찍는 순간 현재 위치 자동 태그. 한 줄 메모 선택 입력<br><span class="sdk-tag s-cam">카메라</span><span class="sdk-tag s-loc">현재 위치</span></div>
-  </div>
-  <div class="flow-step">
-    <div class="flow-num">3 · 보상</div>
-    <div class="flow-title">스트릭 달성</div>
-    <div class="flow-desc">N일 연속 달성 애니메이션. 7일·30일·100일 마일스톤 배지. "내일도 이어가세요" 넛지</div>
-  </div>
-  <div class="flow-step">
-    <div class="flow-num">4 · 회고</div>
-    <div class="flow-title">지도 & 캘린더</div>
-    <div class="flow-desc">쌓인 기록을 지도나 캘린더로 회고. 지도는 보상으로만 존재 — 메인이 아님</div>
-  </div>
-</div>
-
-<div class="sec-title">차별화 포인트 — 왜 사진 앱 대신 이걸 쓰나</div>
-
-<div class="card">
-  <div class="card-head"><div><div class="card-title">의도적 기록 vs 자동 수집</div><div class="card-sub">가장 강력한 차별점</div></div><span class="badge b-new">핵심</span></div>
-  <div class="card-body">
-    아이폰 사진 앱은 <b>아무 의도 없이</b> 모든 걸 저장함. 영수증 사진, 스크린샷, 음식 사진 전부 섞임.<br>
-    Streak Map은 <b>"오늘 하루를 대표하는 한 장"</b>을 의식적으로 고르는 행위. 이 선택의 순간 자체가 가치.
-    <div class="highlight-box">유저 멘탈 모델: "사진 앱은 저장소, Streak Map은 일기"</div>
-  </div>
-</div>
-
-<div class="card">
-  <div class="card-head"><div><div class="card-title">스트릭이 만드는 이탈 방지</div><div class="card-sub">Duolingo가 증명한 구조</div></div><span class="badge b-must">MVP 필수</span></div>
-  <div class="card-body">
-    Duolingo DAU의 <b>핵심 동기는 언어 학습이 아니라 스트릭 유지</b>. 같은 구조를 사진 기록에 적용.<br>
-    스트릭이 길어질수록 앱을 지우기 아까워짐 → 자연스러운 Lock-in.
-    <div class="highlight-box"><b>스트릭 보호권</b> 월 1회: 하루 빠져도 유지. 이걸 "아끼는" 심리가 오히려 더 열심히 찍게 만듦.</div>
-  </div>
-</div>
-
-<div class="card">
-  <div class="card-head"><div><div class="card-title">월말 공유 카드 — 바이럴 엔진</div><div class="card-sub">애플 사진 앱이 절대 못 하는 것</div></div><span class="badge b-later">2차</span></div>
-  <div class="card-body">
-    애플 추억은 나만 봄. Streak Map 월말 카드는 <b>"나 이번 달 31일 연속 찍었어"</b>를 자랑할 수 있는 포맷.<br>
-    스트릭 숫자 + 대표 사진 3장 + 간 곳 수 → 1080×1920 카드 → 인스타 스토리 공유.
-    <div class="highlight-box">공유 동기: 사진 자랑이 아니라 <b>습관 자랑</b>. "나 꾸준히 살고 있어"라는 자기표현.</div>
-  </div>
-</div>
-
-<div class="sec-title">경쟁 포지셔닝</div>
-<div class="card">
-  <div class="vs-grid">
-    <div class="vs-col">
-      <div class="vs-label">애플 사진 앱</div>
-      <div class="vs-val">자동 수집, 수동적<br>습관 형성 의도 없음<br><b>우리와 비경쟁</b></div>
-    </div>
-    <div class="vs-col">
-      <div class="vs-label">Day One / 모먼트</div>
-      <div class="vs-val">텍스트 중심 다이어리<br>별도 설치 필요<br><b>사진+위치로 차별화</b></div>
-    </div>
-    <div class="vs-col">
-      <div class="vs-label">Streak Map v2</div>
-      <div class="vs-val">사진 중심, 위치 자동<br>토스 안에서 바로 시작<br><b>설치 허들 0</b></div>
+  <div class="big-concept">
+    <div class="big-concept-label">New Concept — v2</div>
+    <div class="big-concept-title">오늘 하루를 한 장의 사진으로 ✦</div>
+    <div class="big-concept-sub">
+      매일 한 장의 사진을을 찍는 습관. 쌓인 기록이 내 삶의 지도가 된다.<br />Duolingo의 스트릭 구조 × Spotify Wrapped의
+      공유 바이럴
     </div>
   </div>
-</div>
 
-<div class="sec-title">성공 지표 (재정의)</div>
-<div class="metric-grid">
-  <div class="metric">
-    <div class="metric-label">평균 스트릭 (Day 30)</div>
-    <div class="metric-val">8일</div>
-    <div class="metric-desc">Duolingo 벤치마크 참고</div>
+  <div class="sec-title">v1 → v2 변경사항</div>
+  <div class="card">
+    <div class="change-row">
+      <div class="change-from">메인: 지도 위 사진 핀</div>
+      <div class="change-arrow">→</div>
+      <div class="change-to">메인: 오늘의 샷 + 스트릭</div>
+    </div>
+    <div class="change-row">
+      <div class="change-from">홈 화면: 지도</div>
+      <div class="change-arrow">→</div>
+      <div class="change-to">홈 화면: 스트릭 카운터 + 오늘 찍기 CTA</div>
+    </div>
+    <div class="change-row">
+      <div class="change-from">지도 = 핵심 기능</div>
+      <div class="change-arrow">→</div>
+      <div class="change-to">지도 = 스트릭의 시각적 보상 (탭 하나)</div>
+    </div>
+    <div class="change-row">
+      <div class="change-from">경쟁상대: 애플 사진 앱</div>
+      <div class="change-arrow">→</div>
+      <div class="change-to">경쟁상대: Day One, 모먼트, 루틴 앱</div>
+    </div>
+    <div class="change-row">
+      <div class="change-from">포지셔닝: 사진 지도 앱</div>
+      <div class="change-arrow">→</div>
+      <div class="change-to">포지셔닝: 하루 한 장의 사진 습관 다이어리</div>
+    </div>
   </div>
-  <div class="metric">
-    <div class="metric-label">Day 30 리텐션</div>
-    <div class="metric-val">35%</div>
-    <div class="metric-desc">습관 앱 업계 평균 15%</div>
-  </div>
-  <div class="metric">
-    <div class="metric-label">월말 카드 공유율</div>
-    <div class="metric-val">25%</div>
-    <div class="metric-desc">활성 유저 중 (2차 지표)</div>
-  </div>
-</div>
 
+  <div class="sec-title">핵심 유저 플로우</div>
+  <div class="flow-grid">
+    <div class="flow-step">
+      <div class="flow-num">1 · 진입</div>
+      <div class="flow-title">스트릭 홈</div>
+      <div class="flow-desc">
+        오늘 찍었으면 스트릭 불꽃 🔥 활성화. 안 찍었으면 "오늘 아직 비어있어요" + 큰 셔터 버튼
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-num">2 · 행동</div>
+      <div class="flow-title">한 장의 사진 찍기</div>
+      <div class="flow-desc">
+        카메라 SDK 호출. 찍는 순간 현재 위치 자동 태그. 한 줄 메모 선택 입력<br /><span class="sdk-tag s-cam"
+          >카메라</span
+        ><span class="sdk-tag s-loc">현재 위치</span>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-num">3 · 보상</div>
+      <div class="flow-title">스트릭 달성</div>
+      <div class="flow-desc">N일 연속 달성 애니메이션. 7일·30일·100일 마일스톤 배지. "내일도 이어가세요" 넛지</div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-num">4 · 회고</div>
+      <div class="flow-title">지도 & 캘린더</div>
+      <div class="flow-desc">쌓인 기록을 지도나 캘린더로 회고. 지도는 보상으로만 존재 — 메인이 아님</div>
+    </div>
+  </div>
+
+  <div class="sec-title">차별화 포인트 — 왜 사진 앱 대신 이걸 쓰나</div>
+
+  <div class="card">
+    <div class="card-head">
+      <div>
+        <div class="card-title">의도적 기록 vs 자동 수집</div>
+        <div class="card-sub">가장 강력한 차별점</div>
+      </div>
+      <span class="badge b-new">핵심</span>
+    </div>
+    <div class="card-body">
+      아이폰 사진 앱은 <b>아무 의도 없이</b> 모든 걸 저장함. 영수증 사진, 스크린샷, 음식 사진 전부 섞임.<br />
+      Streak Map은 <b>"오늘 하루를 대표하는 한 장"</b>을 의식적으로 고르는 행위. 이 선택의 순간 자체가 가치.
+      <div class="highlight-box">유저 멘탈 모델: "사진 앱은 저장소, Streak Map은 일기"</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <div>
+        <div class="card-title">스트릭이 만드는 이탈 방지</div>
+        <div class="card-sub">Duolingo가 증명한 구조</div>
+      </div>
+      <span class="badge b-must">MVP 필수</span>
+    </div>
+    <div class="card-body">
+      Duolingo DAU의 <b>핵심 동기는 언어 학습이 아니라 스트릭 유지</b>. 같은 구조를 사진 기록에 적용.<br />
+      스트릭이 길어질수록 앱을 지우기 아까워짐 → 자연스러운 Lock-in.
+      <div class="highlight-box">
+        <b>스트릭 보호권</b> 월 1회: 하루 빠져도 유지. 이걸 "아끼는" 심리가 오히려 더 열심히 찍게 만듦.
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <div>
+        <div class="card-title">월말 공유 카드 — 바이럴 엔진</div>
+        <div class="card-sub">애플 사진 앱이 절대 못 하는 것</div>
+      </div>
+      <span class="badge b-later">2차</span>
+    </div>
+    <div class="card-body">
+      애플 추억은 나만 봄. Streak Map 월말 카드는 <b>"나 이번 달 31일 연속 찍었어"</b>를 자랑할 수 있는 포맷.<br />
+      스트릭 숫자 + 대표 사진 3장 + 간 곳 수 → 1080×1920 카드 → 인스타 스토리 공유.
+      <div class="highlight-box">
+        공유 동기: 사진 자랑이 아니라 <b>습관 자랑</b>. "나 꾸준히 살고 있어"라는 자기표현.
+      </div>
+    </div>
+  </div>
+
+  <div class="sec-title">경쟁 포지셔닝</div>
+  <div class="card">
+    <div class="vs-grid">
+      <div class="vs-col">
+        <div class="vs-label">애플 사진 앱</div>
+        <div class="vs-val">자동 수집, 수동적<br />습관 형성 의도 없음<br /><b>우리와 비경쟁</b></div>
+      </div>
+      <div class="vs-col">
+        <div class="vs-label">Day One / 모먼트</div>
+        <div class="vs-val">텍스트 중심 다이어리<br />별도 설치 필요<br /><b>사진+위치로 차별화</b></div>
+      </div>
+      <div class="vs-col">
+        <div class="vs-label">Streak Map v2</div>
+        <div class="vs-val">사진 중심, 위치 자동<br />토스 안에서 바로 시작<br /><b>설치 허들 0</b></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec-title">성공 지표 (재정의)</div>
+  <div class="metric-grid">
+    <div class="metric">
+      <div class="metric-label">평균 스트릭 (Day 30)</div>
+      <div class="metric-val">8일</div>
+      <div class="metric-desc">Duolingo 벤치마크 참고</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Day 30 리텐션</div>
+      <div class="metric-val">35%</div>
+      <div class="metric-desc">습관 앱 업계 평균 15%</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">월말 카드 공유율</div>
+      <div class="metric-val">25%</div>
+      <div class="metric-desc">활성 유저 중 (2차 지표)</div>
+    </div>
+  </div>
 </div>

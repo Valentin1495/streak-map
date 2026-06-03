@@ -1,5 +1,4 @@
-const REVERSE_GEOCODE_ENDPOINT =
-  'https://szegjcutxoiwwwegfkfk.functions.supabase.co/reverse-geocode';
+const REVERSE_GEOCODE_ENDPOINT = 'https://szegjcutxoiwwwegfkfk.functions.supabase.co/reverse-geocode';
 
 function formatCoords(lat: number, lng: number): string {
   return `${lat.toFixed(4)}, ${lng.toFixed(4)}`;

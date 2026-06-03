@@ -13,11 +13,7 @@ url: >-
 ## 시그니처
 
 ```typescript
-function fetchAlbumPhotos(options: {
-  maxCount: number;
-  maxWidth: number;
-  base64: boolean;
-}): Promise<ImageResponse[]>;
+function fetchAlbumPhotos(options: { maxCount: number; maxWidth: number; base64: boolean }): Promise<ImageResponse[]>;
 ```
 
 ### 파라미터
@@ -119,14 +115,16 @@ function AlbumPhotoList() {
         return <Image source={{ uri: imageUri }} key={image.id} />;
       })}
       <input type="button" value="앨범 가져오기" onClick={handlePress} />
-      <input type="button"
+      <input
+        type="button"
         value="권한 확인하기"
         onClick={async () => {
           const permission = await fetchAlbumPhotos.getPermission();
           alert(permission);
         }}
       />
-      <input type="button"
+      <input
+        type="button"
         value="권한 요청하기"
         onClick={async () => {
           const permission = await fetchAlbumPhotos.openPermissionDialog();
@@ -189,7 +187,6 @@ function AlbumPhotoList() {
     </View>
   );
 }
-
 ```
 
 :::

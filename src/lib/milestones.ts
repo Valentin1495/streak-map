@@ -27,10 +27,7 @@ function getThisWeekSunday(): string {
   return subtractDays(monday, -6);
 }
 
-export async function checkAndAwardMilestone(
-  userId: string,
-  streak: number
-): Promise<void> {
+export async function checkAndAwardMilestone(userId: string, streak: number): Promise<void> {
   if (!(MILESTONE_VALUES as readonly number[]).includes(streak)) return;
 
   const { data: existing } = await supabase
@@ -63,10 +60,7 @@ export async function loadWeeklyRecapData(userId: string): Promise<WeeklyRecapDa
   return loadRecapData(userId, 7);
 }
 
-export async function loadRecapData(
-  userId: string,
-  milestone: RecapMilestone
-): Promise<WeeklyRecapData> {
+export async function loadRecapData(userId: string, milestone: RecapMilestone): Promise<WeeklyRecapData> {
   const today = toKstDateString(new Date());
   const weekStart = milestone === 7 ? getThisWeekMonday() : subtractDays(today, milestone - 1);
   const weekEnd = milestone === 7 ? getThisWeekSunday() : today;

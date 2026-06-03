@@ -437,7 +437,7 @@ function CapturePage() {
             <View style={[styles.photoBox, imageUri != null && styles.photoBoxFilled]}>
               <TouchableOpacity style={styles.photoButton} onPress={shoot} disabled={isWorking} activeOpacity={0.8}>
                 {imageUri != null ? (
-                  <Image source={{ uri: imageUri }} style={styles.photo} resizeMode="cover" />
+                  <Image source={{ uri: imageUri }} style={styles.photo} resizeMode="contain" />
                 ) : (
                   <View style={styles.photoPlaceholder}>
                     <Text style={styles.photoIcon}>📸</Text>
@@ -560,7 +560,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   photoBoxFilled: {
-    backgroundColor: 'transparent',
+    backgroundColor: colors.black,
   },
   photo: {
     width: '100%',

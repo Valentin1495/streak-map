@@ -3,6 +3,7 @@ import { Animated, Image, StyleSheet, Text, TouchableOpacity, View } from 'react
 import { Badge, Button, colors } from '@toss/tds-react-native';
 import { brandColors } from '../lib/theme';
 import { Photo, getPhotoUrl } from '../lib/supabase';
+import { FullPhotoModal } from './FullPhotoModal';
 
 const WEEK_DAYS = ['일', '월', '화', '수', '목', '금', '토'];
 
@@ -40,7 +41,7 @@ export function TodayPhoto({
     [todayPhotos]
   );
   const [selectedPhotoId, setSelectedPhotoId] = useState<string | null>(null);
-  const [showControls, setShowControls] = useState(false);
+  const [isFullPhotoVisible, setIsFullPhotoVisible] = useState(false);
   const emptyEnterAnim = useRef(new Animated.Value(0)).current;
   const emptyScaleAnim = useRef(new Animated.Value(0.92)).current;
   const selectedPhoto = useMemo(
@@ -68,7 +69,6 @@ export function TodayPhoto({
     }
     if (todayPhoto == null) {
       setSelectedPhotoId(null);
-      setShowControls(false);
       return;
     }
     setSelectedPhotoId((prev) => {
@@ -77,7 +77,6 @@ export function TodayPhoto({
       }
       return todayPhoto.id;
     });
-    setShowControls(false);
   }, [emptyEnterAnim, emptyScaleAnim, todayPhoto, todayPhotos]);
 
   if (todayPhoto != null && selectedPhoto != null) {
@@ -94,24 +93,31 @@ export function TodayPhoto({
             </Badge>
           )}
         </View>
-        <TouchableOpacity style={styles.photoFrame} onPress={() => setShowControls((prev) => !prev)} activeOpacity={1}>
-          <Image source={{ uri: getPhotoUrl(selectedPhoto.storage_path) }} style={styles.photo} resizeMode="cover" />
-          {showControls && (
+        <View style={styles.photoFrame}>
+          <Image source={{ uri: getPhotoUrl(selectedPhoto.storage_path) }} style={styles.photo} resizeMode="contain" />
+          <View style={styles.controlRow}>
             <TouchableOpacity
-              style={styles.deleteButton}
+              style={styles.controlButton}
+              onPress={() => setIsFullPhotoVisible(true)}
+              activeOpacity={0.75}
+            >
+              <Text style={styles.controlButtonText}>전체 보기</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.controlButton}
               onPress={() => onDeletePhoto?.(selectedPhoto)}
               disabled={deletingPhotoId != null}
               activeOpacity={0.75}
             >
-              <Text style={styles.deleteButtonText}>{deletingPhotoId === selectedPhoto.id ? '삭제 중' : '삭제'}</Text>
+              <Text style={styles.controlButtonText}>{deletingPhotoId === selectedPhoto.id ? '삭제 중' : '삭제'}</Text>
             </TouchableOpacity>
-          )}
+          </View>
           {selectedPhoto.place_name != null && selectedPhoto.place_name !== '' && (
             <View style={styles.placeTag}>
               <Text style={styles.placeText}>📍 {selectedPhoto.place_name}</Text>
             </View>
           )}
-        </TouchableOpacity>
+        </View>
         {todayPhotos.length > 1 && (
           <View style={styles.thumbnailRow}>
             {todayPhotos.map((photo) => {
@@ -171,6 +177,12 @@ export function TodayPhoto({
             {selectedPhoto.is_representative ? '현재 베스트 샷' : '베스트 샷으로 설정'}
           </Button>
         )}
+        <FullPhotoModal
+          visible={isFullPhotoVisible}
+          uri={getPhotoUrl(selectedPhoto.storage_path)}
+          placeName={selectedPhoto.place_name}
+          onClose={() => setIsFullPhotoVisible(false)}
+        />
       </View>
     );
   }
@@ -212,7 +224,7 @@ const styles = StyleSheet.create({
   photoFrame: {
     borderRadius: 16,
     overflow: 'hidden',
-    backgroundColor: colors.grey200,
+    backgroundColor: colors.black,
     flex: 1,
     minHeight: 200,
   },
@@ -282,16 +294,20 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
   },
-  deleteButton: {
+  controlRow: {
     position: 'absolute',
     top: 8,
     right: 8,
+    flexDirection: 'row',
+    gap: 6,
+  },
+  controlButton: {
     backgroundColor: 'rgba(0,0,0,0.52)',
     borderRadius: 999,
     paddingHorizontal: 10,
     paddingVertical: 5,
   },
-  deleteButtonText: {
+  controlButtonText: {
     color: colors.white,
     fontSize: 12,
     fontWeight: '800',
